@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fa">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="../static/media/title.ico" type="image/x-icon">
+  <link href="https://fonts.googleapis.com/css2?family=Vazir&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <link href="{% static 'css/student_style.css' %}" rel="stylesheet">
+  <title>پنل اصلی چارت دروس</title>
+</head>
+<body>
+  <header>
+    <img src="../static/media/logo.png" alt="لوگو" class='logo'>
+    <h1>پنل اصلی چارت دروس</h1>
+  </header>
+
+  <!-- سوئیچ دارک مود -->
+  <div class="darkmode">
+    <input type="checkbox" class="darkmode-checkbox" id="darkmode" />
+    <label class="darkmode-label" for="darkmode">
+      <i class="fas fa-moon"></i>
+      <i class="fas fa-sun"></i>
+      <div class="ball"></div>
+    </label>
+  </div>
+
+  <!-- نویگیشن بار -->
+  <nav id="nav">
+    {% if full_name %}
+      <div class="nav-buttons">
+        <form action="{% url 'logout' %}" method="post">
+          {% csrf_token %}
+          <button type="submit">خروج</button>
+        </form>
+        <button onclick="switchTab('charts')">چارت‌ها</button>
+        <button onclick="switchTab('conflicts')">تداخلات</button>
+        <button onclick="switchTab('communication')">ارتباطات</button>
+      </div>
+      <p><span class="welcome">سلام </span>{{ full_name }}<spanid="full_name"></span></p>
+    {% else %}
+      <div class="nav-buttons">
+        <button onclick="switchTab('charts')">چارت‌ها</button>
+        <button onclick="switchTab('conflicts')">تداخلات</button>
+        <button onclick="switchTab('communication')">ارتباطات</button>
+      </div>
+    {% endif %}
+      <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+  </nav>
+  <div id="spacer"></div>
+
+  <!-- اسلاید بار -->
+  <div class="sidebar" id="sidebar">
+    <button onclick="showSection('side_schedule')">چارت درسی</button>
+    <button onclick="showSection('side_examination')">چارت امتحانات</button>
+    <button onclick="showSection('side_weekly')">برنامه هفتگی</button>
+    <button onclick="showSection('side_changes')">تغییرات اخیر</button>
+    <button onclick="showSection('side_confliction')">تداخلات</button>
+    <button onclick="showSection('side_messages')">پیام‌ها</button>
+  </div>
+  
+  <!-- مدیریت محتوا -->
+  <div class="container">
+    <!-- چارت ها -->
+    <div id="charts" class="tab-content active">
+      <!-- جدول چارت دروس -->
+      <div id="side_schedule" class="section">
+        <table class="schedule-table">
+          <thead>
+            <tr>
+              <th>روزها</th>
+              <th>گروه</th>
+              <th>08:00 08:30</th>
+              <th>08:30 09:00</th>
+              <th>09:00 09:30</th>
+              <th>09:30 10:00</th>
+              <th>10:00 10:30</th>
+              <th>10:30 11:00</th>
+              <th>11:00 11:30</th>
+              <th>11:30 12:00</th>
+              <th>12:00 12:30</th>
+              <th>12:30 13:00</th>
+              <th>13:00 13:30</th>
+              <th>13:30 14:00</th>
+              <th>14:00 14:30</th>
+              <th>14:30 15:00</th>
+              <th>15:00 15:30</th>
+              <th>15:30 16:00</th>
+              <th>16:00 16:30</th>
+              <th>16:30 17:00</th>
+              <th>17:00 17:30</th>
+              <th>17:30 18:00</th>
+            </tr>
+            <tr id="empty-schedule-table">              
+              <td colspan="22" style="text-align:center; color: black;">!هنوز چارت دروس ساخته نشده است</td>
+            </tr>
+          </thead>
+          <tbody id="schedule-body"></tbody>
+        </table>
+      </div>
+
+      <!-- جدول چارت امتحانات -->
+      <div id="side_examination" class="section">
+        <table class="examination-table" id="examsTable">
+          <thead>
+              <tr>
+                  <th>روز هفته</th>
+                  <th>تاریخ امتحان</th>
+                  <th>زمان امتحان</th>
+                  <th>ورودی</th>
+                  <th>رشته</th>
+                  <th>نام استاد</th>
+                  <th>نوع درس</th>
+                  <th>نام درس</th>
+              </tr>
+          </thead>
+          <tbody>
+            <script>
+              class jDate {
+                constructor(year, month, day) {
+                  this.year = parseInt(year);
+                  this.month = parseInt(month);
+                  this.day = parseInt(day);
+                }
+                toGregorian() {
+                  let g = jalaliToGregorian(this.year, this.month, this.day);
+                  return new Date(g.gy, g.gm - 1, g.gd);
+                }
+                static fromGregorian(date) {
+                  let gYear = date.getFullYear();
+                  let gMonth = date.getMonth() + 1;
+                  let gDay = date.getDate();
+                  let j = gregorianToJalali(gYear, gMonth, gDay);
+                  return new jDate(j.jy, j.jm, j.jd);
+                }
+                addDays(n) {
+                  let gDate = this.toGregorian();
+                  gDate.setDate(gDate.getDate() + n);
+                  return jDate.fromGregorian(gDate);
+                }
+                isBeforeOrEqual(other) {
+                  if(this.year < other.year) return true;
+                  if(this.year > other.year) return false;
+                  if(this.month < other.month) return true;
+                  if(this.month > other.month) return false;
+                  return this.day <= other.day;
+                }
+                toString() {
+                  return `${this.year}/${String(this.month).padStart(2,'0')}/${String(this.day).padStart(2,'0')}`;
+                }
+                getWeekday() {
+                  let gDate = this.toGregorian();
+                  return gDate.toLocaleDateString('fa-IR', { weekday: 'long' });
+                }
+              }
+              function getExamDates(startStr, endStr) {
+                let examDays = [];
+            
+                function parseJalali(str) {
+                  let parts = str.split('/');
+                  return new jDate(parts[0], parts[1], parts[2]);
+                }
+            
+                let start = parseJalali(startStr);
+                let end = parseJalali(endStr);
+            
+                let current = start;
+                while(current.isBeforeOrEqual(end)) {
+                  let weekday = current.getWeekday();
+                  if (weekday !== "جمعه") {
+                    examDays.push({ day: weekday, date: current.toString() });
+                  }
+                  current = current.addDays(1);
+                }
+                return examDays;
+              }
+              const examTimes = ["09:00-11:00", "09:00-11:00", "13:30-15:30", "13:30-15:30"];
+              function renderExamTable() {
+                const startDate = document.getElementById('start_date').value.trim();
+                const endDate = document.getElementById('end_date').value.trim();
+            
+                if (!startDate || !endDate) {
+                  alert("لطفا تاریخ شروع و پایان را وارد کنید");
+                  return;
+                }
+            
+                let examDays;
+                try {
+                  examDays = getExamDates(startDate, endDate);
+                } catch {
+                  alert("فرمت تاریخ‌ها باید به شکل yyyy/mm/dd باشد.");
+                  return;
+                }
+            
+                const tbody = document.querySelector("#examsTable tbody");
+                tbody.innerHTML = ""; 
+            
+                examDays.forEach(({ day, date }) => {
+                  examTimes.forEach((time, index) => {
+                    const tr = document.createElement('tr');
+                    if(index === 0) {
+                      const tdDay = document.createElement('td');
+                      tdDay.rowSpan = 4;
+                      tdDay.textContent = day;
+                      tr.appendChild(tdDay);
+            
+                      const tdDate = document.createElement('td');
+                      tdDate.rowSpan = 4;
+                      tdDate.textContent = date;
+                      tr.appendChild(tdDate);
+                    }
+            
+                    const tdTime = document.createElement('td');
+                    tdTime.textContent = time;
+                    tr.appendChild(tdTime);
+            
+                    for(let i=0; i<5; i++) {
+                      const tdEmpty = document.createElement('td');
+                      tr.appendChild(tdEmpty);
+                    }
+            
+                    tbody.appendChild(tr);
+                  });
+                });
+              }
+              renderExamTable();
+            </script>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- برنامه هفتگی -->
+    <div id="side_weekly" class="section">
+      <table class="schedule-table" border="1">
+        <thead>
+          <tr>
+            <th>روزها</th>
+            <th>08:00 08:30</th>
+            <th>08:30 09:00</th>
+            <th>09:00 09:30</th>
+            <th>09:30 10:00</th>
+            <th>10:00 10:30</th>
+            <th>10:30 11:00</th>
+            <th>11:00 11:30</th>
+            <th>11:30 12:00</th>
+            <th>12:00 12:30</th>
+            <th>12:30 13:00</th>
+            <th>13:00 13:30</th>
+            <th>13:30 14:00</th>
+            <th>14:00 14:30</th>
+            <th>14:30 15:00</th>
+            <th>15:00 15:30</th>
+            <th>15:30 16:00</th>
+            <th>16:00 16:30</th>
+            <th>16:30 17:00</th>
+            <th>17:00 17:30</th>
+            <th>17:30 18:00</th>
+          </tr>
+        </thead>
+        <tbody id="weekly-schedule-body"></tbody>
+      </table>
+    </div>
+
+    <!-- تداخلات -->
+    <div id="conflicts" class="tab-content">
+      <!-- اضافه کردن تداخلات -->
+      <div id="side_confliction" class="section">
+        <!-- بخش اضافه کردن تداخلات -->
+        <div class="add-conflict-box">
+          <h3>اضافه کردن تداخل</h3>
+          <div class="form-section">
+            <!-- تداخل درس یا امتحان -->
+            <div>
+              <label for="conflict_type">:نوع تداخل</label>
+              <select id="conflict_type" class="time-box">
+                  <option value="درس">درس</option>
+                  <option value="امتحان">امتحان</option>
+              </select>
+            </div>
+            <!-- روز تداخل -->
+            <div>
+              <label for="conflict_days">:روز تداخل</label>
+              <select id="conflict_days" class="time-box">
+                <option value="شنبه">شنبه</option>
+                <option value="یکشنبه">یکشنبه</option>
+                <option value="دوشنبه">دوشنبه</option>
+                <option value="سه‌شنبه">سه‌شنبه</option>
+                <option value="چهارشنبه">چهارشنبه</option>
+                <option value="پنج‌شنبه">پنج‌شنبه</option>
+                <option value="هر دوروز">هر دو روز</option>
+            </select>
+            </div>
+            <!-- درس دوم -->
+            <div>
+              <label for="conflict_subject_two">:درس دوم</label>
+              <select id="conflict_subject_two" class="time-box">
+                {% for subject in subject_list %}
+                  <option value="{{ subject }}">{{ subject }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <!-- درس اول -->
+            <div>
+              <label for="conflict_subject_one">:درس اول</label>
+              <select id="conflict_subject_one" class="time-box">
+                {% for subject in subject_list %}
+                  <option value="{{ subject }}">{{ subject }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+          <div class="button-container">
+            <button onclick="addConflict()">اضافه کردن تداخل</button>
+          </div>
+
+          <!-- جدول تداخلات -->
+          <table id="conflicts-table">
+            <thead>
+              <tr>
+                <th>عملیات</th>
+                <th>وضعیت برطرف شدن</th>
+                <th>نوع تداخل</th>
+                <th>روز تداخل</th>
+                <th>درس دوم</th>
+                <th>درس اول</th>
+              </tr>
+              <tr id="empty-conflicts-table">              
+                <td colspan="6" style="text-align:center; color: black;">!هنوز تداخلی ثبت نشده است</td>
+              </tr>
+            </thead>
+            <tbody>
+            </tbody>
+          </table>
+          <div class="button-container">
+            <button onclick="saveConflicts()">ذخیره تغییرات</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ارتباطات -->
+    <div id="conflicts" class="tab-content">
+      <!-- تغییرات اخیر -->
+      <div id="side_changes" class="section">
+        <div class="add-change-box">
+            <h3>تغییرات اخیر</h3>
+            <!-- تغییرات موجود -->
+            <div id="change-messages">
+            </div>
+        </div>
+      </div>
+
+      <!-- پیام‌ها -->
+      <div class="add-message-box">
+        <h3>پیام‌های دریافتی</h3>
+        <div class="messages-wrapper">
+          <!-- چت عمومی -->
+          <div id="side_public" class="section">
+            {% if full_name %}
+              <div class="chat-container" id="publicChatContainer" style="display: block;">
+                  <div class="chat-header">چت دانشجویی</div>
+                  <div class="chat-box" id="public">
+                      <!-- پیام‌ها اینجا اضافه می‌شوند -->
+                  </div>
+                  <div class="chat-input">
+                      <div id="pickerContainerPublic">
+                        <button id="togglePickerBtnPublic" style="font-size: 21px; padding-top: 3px; padding-bottom: 4px;">😊</button>
+                        <div id="emojiPickerPublic"></div>
+                      </div>
+                      <input type="text" id="messageInputPublic" placeholder="پیام خود را بنویسید...">
+                      <button onclick="sendPublicMessage()">ارسال</button>
+                  </div>
+              </div>
+            {% endif %}
+          </div>
+
+          <!-- چت خصوصی -->
+          <div id="side_private" class="section">
+            {% if full_name%}
+              <div class="chat-container" id="privateChatContainer" style="display: block;">
+                  <div class="chat-header"></div>
+                  <div class="chat-box" id="private">
+                      <!-- پیام‌ها اینجا اضافه می‌شوند -->
+                  </div>
+                  <div class="chat-input">
+                      <div id="pickerContainerPrivate">
+                        <button id="togglePickerBtnPrivate" style="font-size: 21px; padding-top: 3px; padding-bottom: 4px;">😊</button>
+                        <div id="emojiPickerPrivate"></div>
+                      </div>
+                      <input type="text" id="messageInputPrivate" placeholder="پیام خود را بنویسید...">
+                      <button onclick="sendPrivateMessage()">ارسال</button>
+                  </div>
+              </div>
+            {% endif %}
+          </div>
+          
+          <div id="side_messages" class="section">
+            <div id="contacts-list"><!-- مخاطبین اینجا اضافه می‌شوند --></div>
+          </div>
+        </div>
+      </div>
+    <div>
+  </div>
+</body>
+<script>
+  let studentName = "{{ full_name }}";
+  let studentMajor = "{{ major }}";
+</script>
+<script src="{% static 'js/student_script.js' %}"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const tbody = document.getElementById("weekly-schedule-body");
+    const days = ["شنبه", "یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنج‌شنبه"];
+    const pad = n => n.toString().padStart(2, "0");
+
+    days.forEach((day, dayIndex) => {
+      const tr = document.createElement("tr");
+      const dayCell = document.createElement("td");
+      dayCell.textContent = day;
+      tr.appendChild(dayCell);
+
+      for (let i = 8; i < 18; i += 0.5) {
+        const startHour = Math.floor(i);
+        const startMin = i % 1 === 0 ? "00" : "30";
+        const endHour = startMin === "00" ? startHour : startHour + 1;
+        const endMin = startMin === "00" ? "30" : "00";
+        const timeId = `day${dayIndex}-${pad(startHour)}:${startMin}-${pad(endHour)}:${endMin}`;
+
+        const td = document.createElement("td");
+        td.className = "time-block";
+        td.id = timeId;
+        tr.appendChild(td);
+      }
+
+      tbody.appendChild(tr);
+    });
+  });
+</script>
+<script type="module">
+  import { createPicker } from 'https://cdn.skypack.dev/picmo';
+
+  // ==== چت عمومی ====
+  const pickerPublic = createPicker({
+    rootElement: document.getElementById('emojiPickerPublic')
+  });
+
+  const toggleBtnPublic = document.getElementById('togglePickerBtnPublic');
+  const inputPublic = document.getElementById('messageInputPublic');
+  const pickerContainerPublic = document.getElementById('emojiPickerPublic');
+
+  pickerContainerPublic.style.display = 'none';
+
+  toggleBtnPublic.addEventListener('click', () => {
+    pickerContainerPublic.style.display =
+      pickerContainerPublic.style.display === 'none' ? 'block' : 'none';
+  });
+
+  pickerPublic.addEventListener('emoji:select', event => {
+    inputPublic.value += event.emoji;
+    inputPublic.focus();
+  });
+
+  // ==== چت خصوصی ====
+  const pickerPrivate = createPicker({
+    rootElement: document.getElementById('emojiPickerPrivate')
+  });
+
+  const toggleBtnPrivate = document.getElementById('togglePickerBtnPrivate');
+  const inputPrivate = document.getElementById('messageInputPrivate');
+  const pickerContainerPrivate = document.getElementById('emojiPickerPrivate');
+
+  pickerContainerPrivate.style.display = 'none';
+
+  toggleBtnPrivate.addEventListener('click', () => {
+    pickerContainerPrivate.style.display =
+      pickerContainerPrivate.style.display === 'none' ? 'block' : 'none';
+  });
+
+  pickerPrivate.addEventListener('emoji:select', event => {
+    inputPrivate.value += event.emoji;
+    inputPrivate.focus();
+  });
+</script>
+</html>

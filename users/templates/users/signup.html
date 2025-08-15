@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="../static/media/title.ico" type="image/x-icon">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Vazir&display=swap" rel="stylesheet">
+    <title>ورود به حساب کاربری</title>
+    <style>
+        :root {
+            --dark-navy: #0D273D;
+            --azure-blue: #0070C0;
+            --steel-blue: #5E85A2;
+            --light-steel: #A6BED1;
+            --ice-blue: #DAE5FA;
+            --error-bg: #ffcccc;
+            --error-text: #CC0000;
+            --success-bg:rgb(204, 255, 204);
+            --success-text:rgb(23, 155, 0);
+        }
+        .error {
+            position: absolute;
+            margin: 0 auto;
+            width: 54.5%;
+            top: 40px;
+        }
+        .success {
+            position: absolute;
+            margin: 0 auto;
+            width: 54.5%;
+            top: 40px;
+        }
+        .custom-error {
+            background-color: var(--error-bg);
+            color: var(--error-text);
+            border: 1px solid var(--error-text);
+            border-radius: 5px;
+            padding: 10px;
+            font-size: 14px;
+            text-align: center;
+            margin-bottom: 20px;
+            margin-left: 15px;
+            margin-right: 15px;
+            opacity: 0;
+            transition: opacity 0.8s ease;
+        }
+        .custom-error.show {
+            opacity: 1;
+        }
+        .custom-success {
+            background-color: var(--success-bg);
+            color: var(--success-text);
+            border: 1px solid var(--success-text);
+            border-radius: 5px;
+            padding: 10px;
+            font-size: 14px;
+            text-align: center;
+            margin-bottom: 20px;
+            margin-left: 15px;
+            margin-right: 15px;
+            opacity: 0;
+            transition: opacity 0.8s ease;
+        }
+        .custom-success.show {
+            opacity: 1;
+        }
+        body {
+            background-image: url('../static/media/images/background.jpg');
+            background-size: cover; 
+            background-position: center center;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            color: var(--dark-navy);
+            font-family: 'Vazir', sans-serif;
+        }
+        .container {
+            max-width: 400px;
+        }
+        .container-wrapper {
+            display: flex;
+            align-items: center;
+        }
+        .image-container {
+            margin-right: -10px;
+            z-index: 1;
+        }
+        .image-container img {
+            max-width: 350px;
+            height: auto;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+        .side-images {
+            position: absolute;
+            top: 45%;
+            width: 28%;
+            pointer-events: none;
+            z-index: 0;
+        }       
+        .side-image {
+            width: 300px;
+        }       
+        .side-image.left {
+            position: fixed;
+            left: 40px;
+        }        
+        .side-image.right {
+            position: fixed;
+            right: 40px;
+        }
+        .side-image.fade-out {
+            opacity: 0;
+        }
+        .side-image.fade-in {
+            opacity: 0;
+            animation: fadeIn 0.5s forwards;
+        }
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+            }
+        }
+        .card {
+            width: 70%;
+            margin: auto;
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            border-radius: 10px;
+            padding: 20px;
+            padding-bottom: 0px;
+        }
+        .card-header{
+            padding: 0px;
+            border-top-left-radius: 5px;
+            border-top-right-radius: 5px;
+        }
+        .card-header-tabs {
+            display: flex;
+            padding: 0;
+            margin: 0;
+            margin-bottom: 0px;
+        }
+        .card-header-tabs .nav-item {
+            flex: 1;
+            text-align: center;
+            margin: 0;
+        }
+        .card-header-tabs .nav-link {
+            color: var(--dark-navy);
+            font-size: 18px;
+            width: 100%;
+        }
+        .card-header-tabs .nav-link.active {
+            color: var(--azure-blue);
+            font-weight: bold;
+            border-bottom: 2px solid var(--azure-blue);
+        }
+        .card-header-tabs .nav-link:hover {
+            color: var(--azure-blue);
+        }
+        .mt-3.text-center a {
+            color: var(--azure-blue);
+        }
+        .mt-3.text-center p {
+            color: var(--dark-navy);
+        }
+        h2 {
+            text-align: center;
+            color: var(--azure-blue);
+        }
+        .sign-in {
+            margin-right: 37%;
+        }
+        .sign-up {
+            position: absolute;
+            width: 70%;
+            left: 35%;
+            top: 0;
+            z-index: 1;
+            display: none;
+        }
+        .form {
+            opacity: 0;
+        }
+        .form-label {
+            color: var(--dark-navy);
+        }
+        .form-group {
+            text-align: right;
+            position: relative;
+        }
+        .form-group img {
+            position: absolute;
+            left: 10px;
+            top: 7px;
+            width: 20px;
+            height: 20px;
+            opacity: 0.6;
+        }
+        .form-control {
+            padding-left: 50px;
+            border: none;
+            border-bottom: 1px solid var(--light-steel);
+            margin-bottom: 10px;
+            margin-top: 25px;
+        }
+        .form-control::placeholder {
+            text-align: right;
+        }
+        .form-check-input {
+            appearance: none;
+            width: 17px;
+            height: 17px;
+            border: 2px solid var(--azure-blue);
+            border-radius: 50%;
+            background-color: transparent;
+            cursor: pointer;
+        }
+        .form-check-label {
+            display: inline-block;
+            line-height: 0.3;
+            color: var(--dark-navy);
+        }
+        .btn-primary {
+            background-color: var(--azure-blue);
+            border-color: var(--azure-blue);
+            border-radius: 5px;
+            margin-left: auto;
+            margin-top: 10px;
+            padding-top: 7px;
+            padding-bottom: 7px;
+        }
+        .btn-primary:hover {
+            background-color: #005fa3;
+            border-color: #005fa3;
+        }
+        .code-button {
+            background-color: var(--azure-blue);
+            border-color: var(--azure-blue);
+            height: 40px;
+            border-radius: 5px;
+            margin-left: auto;
+            margin-top: 22px;
+            padding-top: 0px;
+            padding-bottom: 0px;
+        }
+        .code-button:hover {
+            background-color: #005fa3;
+            border-color: #005fa3;
+        }
+        .btn-container {
+            text-align: left;
+        }
+        .text-center a {
+            color: var(--azure-blue);
+            text-decoration: none;
+        }
+        .text-center a:hover {
+            text-decoration: underline;
+        }
+        .text-white {
+            color: var(--dark-navy);
+        }
+        input[type=number]::-webkit-outer-spin-button,
+        input[type=number]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+        *,
+        *:before,
+        *:after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        .tip {
+            font-size: 20px;
+            margin: 40px auto 50px;
+            text-align: center;
+        }
+        .cont {
+            border: 1px solid var(--light-steel);
+            border-radius: 10px;
+            padding-bottom: 0px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+            position: relative;
+            width: 900px;
+            height: 650px;
+            margin: 40px 0 0 0;
+            background: #fff;
+        }
+        .sub-cont {
+            overflow: hidden;
+            position: absolute;
+            left: 560px;
+            top: 0;
+            width: 900px;
+            height: 100%;
+            padding-left: 260px;
+            background: #fff;
+            -webkit-transition: -webkit-transform 1.2s ease-in-out;
+            transition: -webkit-transform 1.2s ease-in-out;
+            transition: transform 1.2s ease-in-out;
+            transition: transform 1.2s ease-in-out, -webkit-transform 1.2s ease-in-out;
+        }
+        .cont.s--signup .sub-cont {
+            -webkit-transform: translate3d(-560px, 0, 0);
+            transform: translate3d(-560px, 0, 0);
+        }
+        .img {
+            overflow: hidden;
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 340px;
+            height: 100%;
+            padding-top: 360px;
+            z-index: 100;
+        }
+        .sub-cont .img:before {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 0;
+            width: 900px;
+            height: 100%;
+            background-image: url("ext.jpg");
+            opacity: 1;
+            background-size: cover;
+            -webkit-transition: -webkit-transform 1.2s ease-in-out;
+            transition: transform 1.2s ease-in-out;
+            transition: transform 1.2s ease-in-out, -webkit-transform 1.2s ease-in-out;
+        }
+        .sub-cont .img:after {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: #9cb8e0;
+        }
+        .cont.s--signup .img:before {
+            -webkit-transform: translate3d(640px, 0, 0);
+            transform: translate3d(640px, 0, 0);
+        }
+        .img__text {
+            position: absolute;
+            left: 0;
+            top: 50px;
+            width: 100%;
+            direction: rtl;
+            padding: 0 20px;
+            text-align: center;
+            color: #fff;
+            -webkit-transition: -webkit-transform 1.2s ease-in-out;
+            transition: -webkit-transform 1.2s ease-in-out;
+            transition: transform 1.2s ease-in-out;
+            transition: transform 1.2s ease-in-out, -webkit-transform 1.2s ease-in-out;
+            z-index: 99;
+        }
+        .img__text h2 {
+            margin-bottom: 10px;
+            font-weight: normal;
+        }
+        .img__text p {
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .cont.s--signup .img__text.m--up {
+            -webkit-transform: translateX(520px);
+            transform: translateX(520px);
+        }
+        .img__text.m--in {
+            -webkit-transform: translateX(-520px);
+            transform: translateX(-520px);
+        }
+        .cont.s--signup .img__text.m--in {
+            -webkit-transform: translateX(0);
+            transform: translateX(0);
+        }
+        .img__btn {
+            overflow: hidden;
+            position: relative;
+            width: 100px;
+            height: 40px;
+            margin: 0 auto;
+            margin-top: 200px;
+            background: transparent;
+            color: #fff;
+            text-transform: uppercase;
+            font-size: 15px;
+            cursor: pointer;
+            z-index: 99;
+        }
+        .img__btn:after {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            border: 2px solid #fff;
+            border-radius: 30px;
+        }
+        .img__btn span {
+            position: absolute;
+            left: 0;
+            top: 0;
+            display: -webkit-box;
+            display: flex;
+            -webkit-box-pack: center;
+            justify-content: center;
+            -webkit-box-align: center;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+            -webkit-transition: -webkit-transform 1.2s;
+            transition: -webkit-transform 1.2s;
+            transition: transform 1.2s;
+            transition: transform 1.2s, -webkit-transform 1.2s;
+        }
+        .img__btn span.m--in {
+            -webkit-transform: translateY(-72px);
+            transform: translateY(-72px);
+        }
+        .cont.s--signup .img__btn span.m--in {
+            -webkit-transform: translateY(0);
+            transform: translateY(0);
+        }
+        .cont.s--signup .img__btn span.m--up {
+            -webkit-transform: translateY(72px);
+            transform: translateY(72px);
+        }
+        h2 {
+            width: 100%;
+            font-size: 30px;
+            text-align: center;
+            margin-top: 30px;
+            margin-bottom: 70px;
+        }
+        label {
+            display: block;
+            width: 260px;
+            margin: 25px auto 0;
+            text-align: center;
+        }
+        label span {
+            font-size: 12px;
+            color: #cfcfcf;
+            text-transform: uppercase;
+        }
+        .forgot-pass {
+            margin-top: 15px;
+            text-align: center;
+            font-size: 12px;
+            color: #cfcfcf;
+        }
+        .fb-btn {
+            border: 2px solid #d3dae9;
+            color: #8fa1c7;
+        }
+        .fb-btn span {
+            font-weight: bold;
+            color: #455a81;
+        }
+        .form.active {
+            opacity: 1;
+            pointer-events: auto;
+            z-index: 1; 
+        }
+        .sign-in {
+            -webkit-transition-duration: 0.5s;
+            transition-duration: 0.5s;
+        }
+        .sign-up {
+            -webkit-transition-duration: 0.5s;
+            transition-duration: 0.5s;
+        }
+    </style>
+</head>
+<body>
+    <div class="error">
+        <div id="error-messages">
+            {% if messages %}
+                {% for message in messages %}
+                    {% if 'error' in message.tags %}
+                        <div class="custom-error show" role="alert">
+                            {{ message }}
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="success">
+        <div id="success-messages">
+            {% if messages %}
+                {% for message in messages %}
+                    {% if 'success' in message.tags %}
+                        <div class="custom-success show" role="alert">
+                            {{ message }}
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+        </div>
+    </div>
+    
+
+    <div class="container-wrapper">
+        <div class="cont">
+            <div class="form sign-in">
+                <div class="card-body">
+                    <div class="card mx-auto">
+                        <h2>ورود به حساب کاربری</h2>
+
+                        <div class="card-body">
+                            <form method="post" action="{% url 'signup_login' %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="login">
+                                <div class="mb-3 form-group">
+                                    <input type="number" class="form-control no-spinner" id="login-number" 
+                                           name="{{ form.username.html_name }}" 
+                                           value="{{ form.username.value|default_if_none:'' }}" 
+                                           required placeholder="شماره استادی/دانشجویی">
+                                    <img src="../static/media/icons/contact.png" alt="Student Icon">
+                                </div>
+                        
+                                <div class="mb-3 form-group">
+                                    <input type="password" class="form-control" id="stdpassword" 
+                                           name="{{ form.password.html_name }}"
+                                           value="{{ form.password.value|default_if_none:'' }}" 
+                                           required autocomplete="off" placeholder="رمز عبور">
+                                    <img src="../static/media/icons/password.png" alt="Password Icon">
+                                </div>
+                        
+                                <div class="mt-3 text-center">
+                                    <p>رمز عبور را فراموش کرده‌اید؟ 
+                                       <a href="#" onclick="sendLink(event,'student')">بازیابی رمز عبور</a>
+                                    </p>
+                                </div>
+                        
+                                <div class="d-flex justify-content-center">
+                                    <button type="submit" class="btn btn-primary px-4">ورود</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="form sign-up">
+                <div class="card-body">
+                    <div class="card mx-auto">
+                        <h2>ایجاد حساب کاربری</h2>
+                        <div class="card-header">
+                            <ul class="nav nav-tabs card-header-tabs" id="signupTab" role="tablist">
+                                <li class="nav-item">
+                                    <a class="nav-link active" id="signup-student-tab" data-bs-toggle="tab" href="#signup-student" role="tab" aria-controls="signup-student" aria-selected="true">دانشجو</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" id="signup-professor-tab" data-bs-toggle="tab" href="#signup-professor" role="tab" aria-controls="signup-professor" aria-selected="false">استاد</a>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="tab-content" id="myTabContent">
+                            <!-- تب ثبت‌نام دانشجو -->
+                            <div class="tab-pane fade show active" id="signup-student" role="tabpanel" aria-labelledby="signup-student-tab">
+                                <form id="signup-student-form" method="post" action="{% url 'signup_login' %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="user_type" value="student">
+                                    <input type="hidden" id="action-input-student" name="action" value="">
+                        
+                                    <div class="mb-3 form-group">
+                                        <input type="number" class="form-control" name="{{ form.username.html_name }}" value="{{ form.username.value|default_if_none:'' }}" required placeholder="شماره دانشجویی">
+                                        <img src="../static/media/icons/contact.png" alt="Student Icon">
+                                    </div>
+                        
+                                    <div class="mb-3 form-group">
+                                        <input type="password" class="form-control" name="{{ form.password1.html_name }}" required autocomplete="off" placeholder="رمز عبور">
+                                        <img src="../static/media/icons/password.png" alt="Password Icon">
+                                    </div>
+                        
+                                    <div class="mb-3 form-group">
+                                        <input type="password" class="form-control" name="{{ form.password2.html_name }}" required autocomplete="off" placeholder="تکرار رمز عبور">
+                                        <img src="../static/media/icons/password.png" alt="Password Icon">
+                                    </div>
+                        
+                                    <div class="mb-3 form-group">
+                                        <div class="input-group">
+                                            <button type="button" class="btn btn-primary code-button" id="send-code-student">ارسال کد</button>
+                                            <input type="text" class="form-control code-input" name="code" placeholder="کد تأیید">
+                                        </div>
+                                    </div>
+                        
+                                    <div class="d-flex justify-content-center">
+                                        <button type="button" class="btn btn-primary px-4" id="signup-student-btn">ثبت‌نام</button>
+                                    </div>
+                                </form>
+                            </div>
+                        
+                            <!-- تب ثبت‌نام استاد -->
+                            <div class="tab-pane fade" id="signup-professor" role="tabpanel" aria-labelledby="signup-professor-tab">
+                                <form id="signup-professor-form" method="post" action="{% url 'signup_login' %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="user_type" value="professor">
+                                    <input type="hidden" id="action-input-professor" name="action" value="">
+                        
+                                    <div class="mb-3 form-group">
+                                        <input type="number" class="form-control" name="{{ form.username.html_name }}" required placeholder="شماره استادی">
+                                        <img src="../static/media/icons/contact.png" alt="Professor Icon">
+                                    </div>
+                        
+                                    <div class="mb-3 form-group">
+                                        <input type="password" class="form-control" name="{{ form.password1.html_name }}" required autocomplete="off" placeholder="رمز عبور">
+                                        <img src="../static/media/icons/password.png" alt="Password Icon">
+                                    </div>
+                        
+                                    <div class="mb-3 form-group">
+                                        <input type="password" class="form-control" name="{{ form.password2.html_name }}" required autocomplete="off" placeholder="تکرار رمز عبور">
+                                        <img src="../static/media/icons/password.png" alt="Password Icon">
+                                    </div>
+                        
+                                    <div class="mb-3 form-group">
+                                        <div class="input-group">
+                                            <button type="button" class="btn btn-primary code-button" id="send-code-professor">ارسال کد</button>
+                                            <input type="text" class="form-control code-input" name="code" placeholder="کد تأیید">
+                                        </div>
+                                    </div>
+                        
+                                    <div class="d-flex justify-content-center">
+                                        <button type="button" class="btn btn-primary px-4" id="signup-professor-btn">ثبت‌نام</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="sub-cont">
+                <div class="img">
+                    <div class="img__text m--up">
+                        <h3>حساب کاربری ندارید؟ حساب جدیدی ایجاد کنید.<h3>
+                    </div>
+                    <div class="img__text m--in">
+                        <h3>حساب کاربری ایجاد کرده‌اید؟ وارد شوید.<h3>
+                    </div>
+                    <div class="img__btn">
+                        <span class="m--up">ثبت نام</span>
+                        <span class="m--in">ورود</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="side-images">
+            <img id="left-img" class="side-image left" src="../static/media/images/25.png" alt="Left">
+            <img id="right-img" class="side-image right" src="../static/media/images/26.png" alt="Right">
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
+    <script>
+        // Swithch Signup and Signin
+        document.querySelector('.img__btn').addEventListener('click', function () {
+            const container = document.querySelector('.cont');
+            const signInForm = document.querySelector('.sign-in');
+            const signUpForm = document.querySelector('.sign-up');
+        
+            container.classList.toggle('s--signup');
+        
+            if (container.classList.contains('s--signup')) {
+                signInForm.classList.remove('active');
+                setTimeout(() => {
+                    signUpForm.classList.add('active');
+                    signInForm.style.display = 'none';
+                }, 1000);
+                signUpForm.style.display = 'block';
+            } else {
+                signUpForm.classList.remove('active');
+                setTimeout(() => {
+                    signInForm.classList.add('active');
+                    signUpForm.style.display = 'none';
+                }, 1000);
+                signInForm.style.display = 'block';
+
+            }
+        });
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelector('.sign-in').classList.add('active');
+        });
+
+        // Send Recovery Link
+        function sendLink(e, userType) {
+            e.preventDefault();
+
+            let numberInput;
+            if (userType === "student") {
+                numberInput = document.getElementById("login-stdnumber");
+            } else {
+                numberInput = document.getElementById("login-pronumber");
+            }
+
+            const number = numberInput.value.trim();
+
+            if (!number) {
+                showGlobalMessage(`لطفا شماره ${userType === "student" ? "دانشجویی" : "استادی"} را وارد کنید.`);
+                return;
+            }
+
+            fetch("http://127.0.0.1:8000/login/reset_password/", {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: new URLSearchParams({
+                    user_type: userType,
+                    number: number
+                })
+            })
+            .then(res => {
+                if (!res.ok) throw new Error("HTTP error " + res.status);
+                return res.json();
+            })
+            .then(data => {
+                if (data.error) {
+                    showGlobalMessage(data.error, true);
+                } else if (data.success) {
+                    showGlobalMessage(data.success, false);
+                } else {
+                    showGlobalMessage("پاسخ نامعتبر از سرور!", true);
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                showGlobalMessage("خطا در ارتباط با سرور!", true);
+            });
+        }
+        
+        // Show Side Images
+        document.addEventListener("DOMContentLoaded", function () {
+            const signupStudentTab = document.getElementById("signup-student-tab");
+            const signupProfessorTab = document.getElementById("signup-professor-tab");  
+        
+            const leftImg = document.getElementById("left-img");
+            const rightImg = document.getElementById("right-img");
+            const container = document.querySelector(".cont");
+        
+            function updateImages(mode, userType) {
+                leftImg.classList.add("fade-out");
+                rightImg.classList.add("fade-out");
+        
+                setTimeout(() => {
+                    let newLeftSrc = "";
+                    let newRightSrc = "";
+        
+                    if (mode === "signin") {
+                        // فرم ورود همیشه یک تصویر ثابت دارد
+                        newLeftSrc = "../static/media/images/25.png";
+                        newRightSrc = "../static/media/images/26.png";
+                    } else if (mode === "signup") {
+                        // فرم ثبت‌نام با انتخاب کاربر
+                        if (userType === "student") {
+                            newLeftSrc = "../static/media/images/21.png";
+                            newRightSrc = "../static/media/images/22.png";
+                        } else {
+                            newLeftSrc = "../static/media/images/27.png";
+                            newRightSrc = "../static/media/images/28.png";
+                        }
+                    }
+        
+                    leftImg.onload = () => {
+                        leftImg.classList.remove("fade-out");
+                        leftImg.classList.add("fade-in");
+                        setTimeout(() => leftImg.classList.remove("fade-in"), 500);
+                    };
+        
+                    rightImg.onload = () => {
+                        rightImg.classList.remove("fade-out");
+                        rightImg.classList.add("fade-in");
+                        setTimeout(() => rightImg.classList.remove("fade-in"), 500);
+                    };
+        
+                    leftImg.src = newLeftSrc;
+                    rightImg.src = newRightSrc;
+                }, 500);
+            }
+        
+            function getCurrentMode() {
+                return container.classList.contains("s--signup") ? "signup" : "signin";
+            }
+        
+            // فقط signup دارای listener است
+            signupStudentTab?.addEventListener("click", () => updateImages("signup", "student"));
+            signupProfessorTab?.addEventListener("click", () => updateImages("signup", "professor"));
+        
+            // تصاویر فرم ورود را بارگذاری اولیه کنید
+            updateImages("signin");
+        
+            // اگر نیاز به switch button بین signin و signup دارید، می‌توان اضافه کرد
+        });
+        // Show Error and Success Messages
+        document.addEventListener("DOMContentLoaded", function () {
+            const errorContainer = document.getElementById("error-messages");
+            const successContainer = document.getElementById("success-messages");
+            const messageQueue = [];
+            let isShowing = false;
+            const showTime = 2000; 
+            const fadeTime = 500;  
+        
+            function showGlobalMessage(message, isError = true) {
+                const msgDiv = document.createElement("div");
+                if (isError) {
+                    msgDiv.className = "custom-error";
+                } else {
+                    msgDiv.className = "custom-success";
+                }
+                msgDiv.textContent = message;
+        
+                // انتخاب container مربوطه
+                if (isError) {
+                    errorContainer.appendChild(msgDiv);
+                } else {
+                    successContainer.appendChild(msgDiv);
+                }
+        
+                messageQueue.push({element: msgDiv, container: isError ? errorContainer : successContainer});
+                processQueue();
+            }
+        
+            function processQueue() {
+                if (isShowing || messageQueue.length === 0) return;
+                isShowing = true;
+        
+                const {element: msgDiv, container} = messageQueue.shift();
+        
+                // اول مخفی‌ش کن و سپس نمایش بده
+                msgDiv.style.opacity = "0";
+        
+                setTimeout(() => {
+                    msgDiv.classList.add("show");
+                    msgDiv.style.opacity = "1";
+                }, 50);
+        
+                setTimeout(() => {
+                    msgDiv.classList.remove("show");
+                    msgDiv.style.opacity = "0";
+        
+                    setTimeout(() => {
+                        msgDiv.remove();
+                        isShowing = false;
+                        processQueue();
+                    }, fadeTime);
+        
+                }, showTime);
+            }
+        
+            // بارگذاری پیام‌های اولیه (ارور)
+            const initialErrors = errorContainer.querySelectorAll(".custom-error");
+            initialErrors.forEach(err => {
+                err.classList.remove("show");
+                err.style.opacity = "0";
+                messageQueue.push({element: err, container: errorContainer});
+            });
+        
+            // بارگذاری پیام‌های اولیه (موفقیت)
+            const initialSuccess = successContainer.querySelectorAll(".custom-success");
+            initialSuccess.forEach(suc => {
+                suc.classList.remove("show");
+                suc.style.opacity = "0";
+                messageQueue.push({element: suc, container: successContainer});
+            });
+        
+            processQueue();
+        
+            window.showGlobalMessage = showGlobalMessage;
+        });
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let cookie of cookies) {
+                    cookie = cookie.trim();
+                    if (cookie.startsWith(name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        const csrftoken = getCookie('csrftoken');
+        
+        async function sendForm(formId, actionValue) {
+            const form = document.getElementById(formId);
+            const actionInput = form.querySelector('input[name="action"]');
+            actionInput.value = actionValue;
+            const url = form.getAttribute('action');
+        
+            console.log('Sending to URL:', url);
+            console.log('Action input value:', actionInput.value);
+        
+            const formData = new FormData(form);
+        
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': csrftoken
+                    }
+                });
+                console.log('Form action:', url);
+                const data = await response.json();
+                if (data.success) {
+                    showGlobalMessage(data.success, 'success');
+                } else if (data.error) {
+                    showGlobalMessage(data.error, 'danger');
+                } else if (data.errors) {
+                    let messages = Object.values(data.errors).flat().join("<br>");
+                    showGlobalMessage(messages, 'danger');
+                }
+            } catch (err) {
+                console.error(err);
+                showGlobalMessage('خطای غیرمنتظره رخ داد.', 'danger');
+            }
+        }
+        
+        document.getElementById('send-code-student').addEventListener('click', () => sendForm('signup-student-form', 'send_code'));
+        document.getElementById('signup-student-btn').addEventListener('click', () => sendForm('signup-student-form', 'signup'));
+        document.getElementById('send-code-professor').addEventListener('click', () => sendForm('signup-professor-form', 'send_code'));
+        document.getElementById('signup-professor-btn').addEventListener('click', () => sendForm('signup-professor-form', 'signup'));
+        
+        
+    </script>
+</body>
+</html>

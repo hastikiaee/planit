@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+  <link rel="icon" href="../static/media/title.ico" type="image/x-icon">
+  <link href="https://fonts.googleapis.com/css2?family=Vazir&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <link href="../static/css/admin_style.css" rel="stylesheet">
+  <title>پنل مدیریت آموزش</title>
+</head>
+<body>
+  <header>
+    <img src="../static/media/logo.png" alt="لوگو" class='logo'>
+    <h1>پنل مدیریت آموزش</h1>
+  </header>
+
+  <!-- سوئیچ دارک مود -->
+  <div class="darkmode">
+    <input type="checkbox" class="darkmode-checkbox" id="darkmode" />
+    <label class="darkmode-label" for="darkmode">
+      <i class="fas fa-moon"></i>
+      <i class="fas fa-sun"></i>
+      <div class="ball"></div>
+    </label>
+  </div>
+  
+  <!-- نویگیشن بار -->
+  <nav id="nav">
+    {% if full_name %}
+      <div class="nav-buttons">
+        <form action="{% url 'logout' %}" method="post">
+          {% csrf_token %}
+          <button type="submit">خروج</button>
+        </form>
+        <button onclick="window.location.href='main'">صفحه اصلی</button>
+        <button onclick="switchTab('information')">اطلاعات دانشجویان و اساتید</button>
+        <button onclick="switchTab('classification')">جدول کلاس‌ها</button>
+        <button onclick="switchTab('confliction')">تداخلات</button>
+        <button onclick="switchTab('messages')">پیام‌ها</button>
+      </div>
+      <p><span class="welcome">سلام </span>{{ full_name }}<spanid="admin_name"></span></p>
+    {% else %}
+      <div class="nav-buttons">
+        <button onclick='{% url 'login' %}'>خروج</button>
+        <button onclick="switchTab('information')">اطلاعات دانشجویان و اساتید</button>
+        <button onclick="switchTab('classification')">جدول کلاس‌ها</button>
+        <button onclick="switchTab('confliction')">تداخلات</button>
+        <button onclick="switchTab('messages')">پیام‌ها</button>
+      </div>
+    {% endif %}
+    <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+  </nav>
+  <div id="spacer"></div>
+
+  <!-- اسلاید بار -->
+  <div class="sidebar" id="sidebar">
+    <button class="sidebar-button" onclick="showSection('side_professors')">مدیریت اساتید</button>
+    <button class="sidebar-button" onclick="showSection('side_faculty')">اساتید مدیر گروه</button>
+    <button class="sidebar-button" onclick="showSection('side_students')">مدیریت دانشجویان</button>
+    <button class="sidebar-button" onclick="showSection('side_schedule')">چارت دروس</button>
+    <button class="sidebar-button" onclick="showSection('side_examination')">چارت امتحانات</button>
+    <button class="sidebar-button" onclick="showSection('side_classes')">مدیریت کلاس‌ها</button>
+    <button class="sidebar-button" onclick="showSection('side_classification')">جدول چارت کلاس بندی</button>
+    <button class="sidebar-button" onclick="showSection('side_classification_chart')">مدیریت کلاس بندی</button>
+    <button class="sidebar-button" onclick="showSection('side_free_class')">یافتن کلاس آزاد</button>
+    <button class="sidebar-button" onclick="showSection('side_confliction')">تداخلات</button>
+    <button class="sidebar-button" onclick="showSection('side_messages')">پیام‌ها</button>
+  </div>
+
+  <div class="container">
+    <!-- مدیریت دروس -->
+    <div id="side_courses" class="section">
+      <div class="add-course-box">
+        <h3>اضافه کردن درس</h3>
+        <div class="form-section">
+          <div>
+            <!-- رشته درس -->
+            <div>
+              <label for="course_major">:رشته درس</label>
+              <input type="text" id="course_major" class="time-box" placeholder="رشته درس را وارد کنید">
+            </div>
+          </div>
+          <div>
+            <!-- نوع درس -->
+            <div>
+              <label for="course_type">:نوع درس</label>
+              <input type="text" id="course_type" placeholder="نوع درس را وارد کنید">
+            </div>
+            <!-- مدت کلاس -->
+            <div>
+              <label for="course_length">:مدت کلاس</label>
+              <input type="number" id="course_length" class="time-box" placeholder="مدت کلاس را وارد کنید" step="0.5" required>
+            </div>
+          </div>
+          <div>
+            <!-- نام درس -->
+            <div>
+              <label for="course_name">:نام درس</label>
+              <input type="text" id="course_name" placeholder="نام درس را وارد کنید">
+            </div>
+            <!-- تعداد روز ارائه درس -->
+            <div>
+              <label for="course_days">:تعداد روز ارائه</label>
+              <input type="number" id="course_days" class="time-box" placeholder="تعداد روز را وارد کنید" step="1" required>
+            </div>
+          </div>
+        </div>
+        <div class="button-container">
+          <button onclick="addCourse()">اضافه کردن درس</button>
+          <button id="importCoursesCSV">CSV آپلود فایل</button>
+        </div>
+
+        <!-- جدول اطلاعات دروس -->
+        <table id="courses-table">
+          <thead>
+            <tr>
+              <th>عملیات</th>
+              <th>مدت کلاس</th>
+              <th>تعداد روز ارائه</th>
+              <th>رشته درس</th>
+              <th>نوع درس</th>
+              <th>نام درس</th>
+            </tr>
+            <tr id="empty-courses-table">              
+              <td colspan="6" style="text-align:center; color: black;">!هنوز درسی اضافه نشده است</td>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <!-- دروس اینجا اضافه می‌شوند -->
+            </tr>
+          </tbody>
+        </table>
+        <div class="button-container">
+          <button onclick="saveCourses()">ذخیره تغییرات</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- مدیریت اساتید -->
+    <div id="side_professors" class="section">
+      <div class="add-professor-box">
+        <h3>اضافه کردن استاد</h3>
+        <div class="form-section">
+          <div>
+            <!-- شماره استادی -->
+            <div>
+              <label for="professor_number">:شماره استادی</label>
+              <input type="text" id="professor_number" placeholder="شماره استادی را وارد کنید">
+            </div>
+            <!-- رشته تدریس -->
+            <div>
+              <label for="professor_major">:رشته تدریس</label>
+              <input type="text" id="professor_major" class="time-box" placeholder="رشته تدریس را وارد کنید">
+            </div>
+          </div>
+          <div>
+            <!-- نام استاد -->
+            <div>
+              <label for="professor_name">:نام استاد</label>
+              <input type="text" id="professor_name" placeholder="نام استاد را وارد کنید">
+            </div>
+            <!-- ایمیل استاد -->
+            <div>
+              <label for="professor_email">:ایمیل استاد</label>
+              <input type="email" id="professor_email" class="time-box" placeholder="ایمیل استاد را وارد کنید" required>
+            </div>
+          </div>
+        </div>
+        <div class="button-container">
+          <button onclick="addProfessor()">اضافه کردن استاد</button>
+          <button id="importProfessorsCSV">CSV آپلود فایل</button>
+        </div>
+
+        <!-- جدول اطلاعات اساتید -->
+        <div class="sort-professors">
+          <label for="sort-select">مرتب سازی براساس: </label>
+          <select id="sort-professors-select" class="sort-select">
+            <option value="name">نام استاد</option>
+            <option value="major">رشته تدریس</option>
+          </select>
+        </div>
+        <table id="professors-table">
+          <thead>
+            <tr>
+              <th>عملیات</th>
+              <th>رشته تدریس</th>
+              <th>ایمیل استاد</th>
+              <th>شماره استادی</th>
+              <th>نام استاد</th>
+            </tr>
+            <tr id="empty-professors-table">              
+              <td colspan="5" style="text-align:center; color: black;">!هنوز استادی اضافه نشده است</td>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <!-- اساتید اینجا اضافه می‌شوند -->
+            </tr>
+          </tbody>
+        </table>
+        <div class="button-container">
+          <button onclick="saveProfessors()">ذخیره تغییرات</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- اساتید مدیر گروه -->
+    <div id="side_faculty" class="section">
+      <div class="add-faculty-box">
+        <h3>اساتید مدیر گروه</h3>
+        <div class="faculty-input-wrapper">
+          <input id="professor-search-input" class="faculty-input" placeholder="نام استاد را وارد کنید..." onkeyup="searchProfessor()">
+          <button class="faculty-search-btn" onclick="searchProfessor()">جستجو</button>
+        </div>
+        <ul id="professor-suggestions" class="list-group suggestions-list shadow-sm"></ul>
+
+        <!-- جدول اطلاعات اساتید مدیر گروه -->
+        <table id="faculty-table">
+          <thead>
+            <tr>
+              <th>عملیات</th>
+              <th>رشته تدریس</th>
+              <th>ایمیل</th>
+              <th>شماره استادی</th>
+              <th>نام استاد</th>
+            </tr>
+            <tr id="empty-faculty-table">              
+              <td colspan="5" style="text-align:center; color: black;">!هنوز استاد مدیرگروهی ثبت نشده است</td>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <!-- اساتید مدیر گروه اینجا اضافه می‌شوند -->
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- مدیریت دانشجویان -->
+    <div id="side_students" class="section">
+      <div class="add-student-box">
+        <h3>اضافه کردن دانشجو</h3>
+        <div class="form-section">
+          <div>
+            <!-- ایمیل دانشجو -->
+            <div>
+              <label for="student_email">:ایمیل دانشجو</label>
+              <input type="email" id="student_email" class="time-box" placeholder="ایمیل دانشجو را وارد کنید" required>
+            </div>
+          </div>
+          <div>
+            <!-- شماره دانشجویی -->
+            <div>
+              <label for="student_number">:شماره دانشجویی</label>
+              <input type="text" id="student_number" placeholder="شماره دانشجویی را وارد کنید">
+            </div>
+            <!-- سال ورودی -->
+            <div>
+              <label for="student_year">:سال ورودی</label>
+              <input type="text" id="student_year" class="time-box" placeholder="سال ورودی را وارد کنید">
+            </div>
+          </div>
+          <div>
+            <!-- نام دانشجو -->
+            <div>
+              <label for="student_name">:نام دانشجو</label>
+              <input type="text" id="student_name" placeholder="نام دانشجو را وارد کنید">
+            </div>
+            <!-- رشته تحصیلی -->
+            <div>
+              <label for="student_major">:رشته تحصیلی</label>
+              <input type="text" id="student_major" class="time-box" placeholder="رشته تحصیلی را وارد کنید">
+            </div>
+          </div>
+        </div>
+        <div class="button-container">
+          <button onclick="addStudent()">اضافه کردن دانشجو</button>
+          <button id="importStudentsCSV">CSV آپلود فایل</button>
+        </div>
+
+        <!-- جدول اطلاعات دانشجویان -->
+        <div class="sort-students">
+          <label for="sort-select">مرتب سازی براساس: </label>
+          <select id="sort-students-select" class="sort-select">
+            <option value="name">نام دانشجو</option>
+            <option value="number">شماره دانشجویی</option>
+            <option value="major">رشته تحصیلی</option>
+            <option value="year">سال ورودی</option>
+          </select>
+        </div>
+        <table id="students-table">
+          <thead>
+            <tr>
+              <th>عملیات</th>
+              <th>سال ورودی</th>
+              <th>رشته تحصیلی</th>
+              <th>ایمیل دانشجو</th>
+              <th>شماره دانشجویی</th>
+              <th>نام دانشجو</th>
+            </tr>
+            <tr id="empty-students-table">              
+              <td colspan="6" style="text-align:center; color: black;">!هنوز دانشجویی اضافه نشده است</td>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <!-- دانشجویان اینجا اضافه می‌شوند -->
+            </tr>
+          </tbody>
+        </table>
+        <div class="button-container">
+          <button onclick="saveStudents()">ذخیره تغییرات</button>
+          <button onclick="exportStudents()">دانلود خروجی</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- جدول چارت دروس -->
+    <div id="side_schedule" class="section">
+      <!-- فیلترکردن چارت دروس -->
+      <div class="sort-schedule">
+        <div>
+          <label for="sort-select">فیلترکردن براساس ورودی: </label>
+          <select id="sort-entry-select" class="sort-select">
+            <option value="all-entry">همه ورودی ها</option>
+            <option value="first">ورودی اول</option>
+            <option value="second">ورودی دوم</option>
+            <option value="third">ورودی سوم</option>
+            <option value="forth">ورودی چهارم</option>
+          </select>
+        </div>
+        <div>
+          <label for="sort-select">فیلترکردن براساس رشته: </label>
+          <select id="sort-major-select" class="sort-select">
+            <option value="all-major">همه رشته ها</option>
+            <option value="computer">مهندسی کامپیوتر</option>
+            <option value="industrial">مهندسی صنایع</option>
+            <option value="chemical">مهندسی شیمی</option>
+            <option value="petroleum">مهندسی نفت</option>
+          </select>
+        </div>
+      </div>
+      <table class="schedule-table">
+        <thead>
+          <tr>
+            <th>روزها</th>
+            <th>ورودی</th>
+            <th>رشته تحصیلی</th>
+            <th>08:00 08:30</th>
+            <th>08:30 09:00</th>
+            <th>09:00 09:30</th>
+            <th>09:30 10:00</th>
+            <th>10:00 10:30</th>
+            <th>10:30 11:00</th>
+            <th>11:00 11:30</th>
+            <th>11:30 12:00</th>
+            <th>12:00 12:30</th>
+            <th>12:30 13:00</th>
+            <th>13:00 13:30</th>
+            <th>13:30 14:00</th>
+            <th>14:00 14:30</th>
+            <th>14:30 15:00</th>
+            <th>15:00 15:30</th>
+            <th>15:30 16:00</th>
+            <th>16:00 16:30</th>
+            <th>16:30 17:00</th>
+            <th>17:00 17:30</th>
+            <th>17:30 18:00</th>
+          </tr>
+        </thead>
+        <tbody>
+          <script>
+            const days = ["شنبه", "یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنج‌شنبه"];
+            const groups = ["ورودی اول", "ورودی دوم", "ورودی سوم", "ورودی چهارم"];
+            const majors = ["مهندسی کامپیوتر", "مهندسی صنایع", "مهندسی شیمی", "مهندسی نفت"];
+          
+            const pad = n => n.toString().padStart(2, "0");
+          
+            days.forEach((day, dayIndex) => {
+              document.write(`<tr><td rowspan="${groups.length * majors.length}">${day}</td>`);
+          
+              groups.forEach((group, groupIndex) => {
+                majors.forEach((major, majorIndex) => {
+                  if (groupIndex > 0 || majorIndex > 0) document.write(`<tr>`);
+          
+                  if (majorIndex === 0) {
+                    document.write(`<td rowspan="${majors.length}">${group}</td>`);
+                  }
+          
+                  document.write(`<td>${major}</td>`);
+          
+                  for (let i = 8; i < 18; i += 0.5) {
+                    const startHour = Math.floor(i);
+                    const startMin = i % 1 === 0 ? "00" : "30";
+                    const endHour = startMin === "00" ? startHour : startHour + 1;
+                    const endMin = startMin === "00" ? "30" : "00";
+                    const timeId = `day${dayIndex}-group${groupIndex}-major${majorIndex}-${pad(startHour)}:${startMin}-${pad(endHour)}:${endMin}`;
+                    document.write(`<td class="time-block" id="${timeId}"></td>`);
+                  }
+          
+                  document.write(`</tr>`);
+                });
+              });
+            });
+          </script>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- جدول چارت امتحانات -->
+    <div id="side_examination" class="section">
+      <!-- فیلترکردن چارت امتحانات -->
+      <div class="sort-schedule">
+        <div>
+          <label for="sort-select">فیلترکردن براساس ورودی: </label>
+          <select id="sort-exam-entry-select" class="sort-select">
+            <option value="exam-all-entry">همه ورودی ها</option>
+            <option value="exam-first">ورودی اول</option>
+            <option value="exam-second">ورودی دوم</option>
+            <option value="exam-third">ورودی سوم</option>
+            <option value="exam-forth">ورودی چهارم</option>
+          </select>
+        </div>
+        <div>
+          <label for="sort-select">فیلترکردن براساس رشته: </label>
+          <select id="sort-exam-major-select" class="sort-select">
+            <option value="exam-all-major">همه رشته ها</option>
+            <option value="exam-computer">مهندسی کامپیوتر</option>
+            <option value="exam-industrial">مهندسی صنایع</option>
+            <option value="exam-chemical">مهندسی شیمی</option>
+            <option value="exam-petroleum">مهندسی نفت</option>
+          </select>
+        </div>
+      </div>
+      <table class="examination-table" id="examsTable">
+        <thead>
+            <tr>
+                <th>روز هفته</th>
+                <th>تاریخ امتحان</th>
+                <th>زمان امتحان</th>
+                <th>ورودی</th>
+                <th>رشته</th>
+                <th>نام استاد</th>
+                <th>نوع درس</th>
+                <th>نام درس</th>
+            </tr>
+        </thead>
+        <tbody>
+          <script>
+            class jDate {
+              constructor(year, month, day) {
+                this.year = parseInt(year);
+                this.month = parseInt(month);
+                this.day = parseInt(day);
+              }
+              toGregorian() {
+                let g = jalaliToGregorian(this.year, this.month, this.day);
+                return new Date(g.gy, g.gm - 1, g.gd);
+              }
+              static fromGregorian(date) {
+                let gYear = date.getFullYear();
+                let gMonth = date.getMonth() + 1;
+                let gDay = date.getDate();
+                let j = gregorianToJalali(gYear, gMonth, gDay);
+                return new jDate(j.jy, j.jm, j.jd);
+              }
+              addDays(n) {
+                let gDate = this.toGregorian();
+                gDate.setDate(gDate.getDate() + n);
+                return jDate.fromGregorian(gDate);
+              }
+              isBeforeOrEqual(other) {
+                if(this.year < other.year) return true;
+                if(this.year > other.year) return false;
+                if(this.month < other.month) return true;
+                if(this.month > other.month) return false;
+                return this.day <= other.day;
+              }
+              toString() {
+                return `${this.year}/${String(this.month).padStart(2,'0')}/${String(this.day).padStart(2,'0')}`;
+              }
+              getWeekday() {
+                let gDate = this.toGregorian();
+                return gDate.toLocaleDateString('fa-IR', { weekday: 'long' });
+              }
+            }
+            function getExamDates(startStr, endStr) {
+              let examDays = [];
+          
+              function parseJalali(str) {
+                let parts = str.split('/');
+                return new jDate(parts[0], parts[1], parts[2]);
+              }
+          
+              let start = parseJalali(startStr);
+              let end = parseJalali(endStr);
+          
+              let current = start;
+              while(current.isBeforeOrEqual(end)) {
+                let weekday = current.getWeekday();
+                if (weekday !== "جمعه") {
+                  examDays.push({ day: weekday, date: current.toString() });
+                }
+                current = current.addDays(1);
+              }
+              return examDays;
+            }
+            const examTimes = ["09:00-11:00", "09:00-11:00", "13:30-15:30", "13:30-15:30"];
+            function renderExamTable() {
+              const startDate = document.getElementById('start_date').value.trim();
+              const endDate = document.getElementById('end_date').value.trim();
+          
+              if (!startDate || !endDate) {
+                alert("لطفا تاریخ شروع و پایان را وارد کنید");
+                return;
+              }
+          
+              let examDays;
+              try {
+                examDays = getExamDates(startDate, endDate);
+              } catch {
+                alert("فرمت تاریخ‌ها باید به شکل yyyy/mm/dd باشد.");
+                return;
+              }
+          
+              const tbody = document.querySelector("#examsTable tbody");
+              tbody.innerHTML = ""; 
+          
+              examDays.forEach(({ day, date }) => {
+                examTimes.forEach((time, index) => {
+                  const tr = document.createElement('tr');
+                  if(index === 0) {
+                    const tdDay = document.createElement('td');
+                    tdDay.rowSpan = 4;
+                    tdDay.textContent = day;
+                    tr.appendChild(tdDay);
+          
+                    const tdDate = document.createElement('td');
+                    tdDate.rowSpan = 4;
+                    tdDate.textContent = date;
+                    tr.appendChild(tdDate);
+                  }
+          
+                  const tdTime = document.createElement('td');
+                  tdTime.textContent = time;
+                  tr.appendChild(tdTime);
+          
+                  for(let i=0; i<5; i++) {
+                    const tdEmpty = document.createElement('td');
+                    tr.appendChild(tdEmpty);
+                  }
+          
+                  tbody.appendChild(tr);
+                });
+              });
+            }
+            renderExamTable();
+          </script>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- برنامه کلاسبندی -->
+    <div id="classification" class="tab-content active">
+      <!-- جدول چارت کلاس بندی -->
+      <div id="side_classification" class="section">
+        <table class="classification-table" border="1">
+          <thead>
+            <tr>
+              <th>روزها</th>
+              <th>08:00 08:30</th>
+              <th>08:30 09:00</th>
+              <th>09:00 09:30</th>
+              <th>09:30 10:00</th>
+              <th>10:00 10:30</th>
+              <th>10:30 11:00</th>
+              <th>11:00 11:30</th>
+              <th>11:30 12:00</th>
+              <th>12:00 12:30</th>
+              <th>12:30 13:00</th>
+              <th>13:00 13:30</th>
+              <th>13:30 14:00</th>
+              <th>14:00 14:30</th>
+              <th>14:30 15:00</th>
+              <th>15:00 15:30</th>
+              <th>15:30 16:00</th>
+              <th>16:00 16:30</th>
+              <th>16:30 17:00</th>
+              <th>17:00 17:30</th>
+              <th>17:30 18:00</th>
+            </tr>
+          </thead>
+          <tbody id="classification-table-body">
+          
+          </tbody>
+        </table>
+      </div>
+
+      <!-- بخش اضافه کردن کلاس -->
+      <div id="side_classes" class="section">
+        <div class="add-class-box">
+          <h3>اضافه کردن کلاس</h3>
+          <div class="form-section">
+            <div>
+              <!-- ظرفیت کلاس -->
+              <div>
+                <label for="class_capacity">:ظرفیت کلاس</label>
+                <input type="number" id="class_capacity" class="time-box" placeholder="ظرفیت کلاس را وارد کنید">
+              </div>
+            </div>
+            <div>
+              <!-- نوع کلاس -->
+              <div>
+                <label for="class_type">:نوع کلاس</label>
+                <select id="class_type">
+                  <option value="کلاس درس">کلاس درس</option>
+                  <option value="آزمایشگاه">آزمایشگاه</option>
+                  <option value="کارگاه">کارگاه</option>
+                  <option value="آمفی تئاتر">آمفی تئاتر</option>
+                  <option value="ورزشگاه">ورزشگاه</option>
+                </select>
+              </div>
+              <!-- طبقه کلاس -->
+              <div>
+                <label for="class_floor">:طبقه کلاس</label>
+                <input type="number" id="class_floor" class="time-box" placeholder="طبقه کلاس را وارد کنید" required>
+              </div>
+            </div>
+            <div>
+              <!-- نام کلاس -->
+              <div>
+                <label for="class_name">:نام کلاس</label>
+                <input type="text" id="class_name" placeholder="نام کلاس را وارد کنید">
+              </div>
+              <!-- ساختمان کلاس -->
+              <div>
+                <label for="class_building">:ساختمان کلاس</label>
+                <input type="text" id="class_building" class="time-box" placeholder="ساختمان کلاس را وارد کنید" step="1" required>
+              </div>
+            </div>
+          </div>
+          <div class="button-container">
+            <button onclick="addClass()">اضافه کردن کلاس</button>
+            <button id="importClassesCSV">CSV آپلود فایل</button>
+          </div>
+
+          <!-- جدول اطلاعات کلاس‌ها -->
+          <table id="classes-table">
+            <thead>
+              <tr>
+                <th>عملیات</th>
+                <th>طبقه کلاس</th>
+                <th>ساختمان کلاس</th>
+                <th>ظرفیت کلاس</th>
+                <th>نوع کلاس</th>
+                <th>نام کلاس</th>
+              </tr>
+              <tr id="empty-classes-table">              
+                <td colspan="6" style="text-align:center; color: black;">!هنوز کلاسی اضافه نشده است</td>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <!-- کلاس‌ها اینجا اضافه می‌شوند -->
+              </tr>
+            </tbody>
+          </table>
+          <div class="button-container">
+            <button onclick="saveClasses()">ذخیره تغییرات</button>
+          </div>
+        </div>
+        <!-- ساختن برنامه -->
+        <div class="button-finish">
+          <button id="generate-classification" onclick="generateClassification()">ساختن برنامه کلاسی</button>
+        </div>
+      </div>
+
+      <!-- مدیریت چارت کلاس بندی -->
+      <div id="side_classification_chart" class="section">
+        <div class="add-classification-box">
+          <h3>مدیریت چارت کلاسبندی</h3>
+          <!-- مرتب سازی اطلاعات چارت -->
+          <div class="sort-classification">
+            <label for="sort-select">مرتب سازی براساس: </label>
+            <select id="sort-classification-select" class="sort-select">
+              <option value="day">روز هفته</option>
+              <option value="professor">نام استاد</option>
+              <option value="class">نام کلاس</option>
+              <option value="subject">نام درس</option>
+            </select>
+          </div>
+          <!-- جدول اطلاعات چارت -->
+          <table id="classification-chart-table">
+            <thead>
+              <tr>
+                <th>عملیات</th>
+                <th>زمان پایان</th>
+                <th>زمان شروع</th>
+                <th>روز هفته</th>
+                <th>نام کلاس</th>
+                <th>نام استاد</th>
+                <th>نام درس</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <!-- اطلاعات چارت اینجا اضافه می‌شوند -->
+              </tr>
+            </tbody>
+          </table>
+          <div class="button-container">
+            <button onclick="saveClassification()">ذخیره تغییرات</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- یافتن کلاس آزاد -->
+      <div id="side_free_class" class="section">
+        <div class="add-find-class-box">
+          <h3>یافتن کلاس آزاد</h3>
+          <!-- اطلاعات کلاس مدنظر -->
+          <div class="form-section">
+            <div>
+              <!-- ظرفیت کلاس -->
+              <div>
+                <label for="target-capacity">:ظرفیت موردنیاز</label>
+                <input type="number" id="target-capacity" min="1" value="30">
+              </div>
+            </div>
+            <div>
+              <!-- روز هفته -->
+              <div>
+                <label for="target-day">:روز هفته</label>
+                <select id="target-day" class="time-box">
+                  <option>شنبه</option>
+                  <option>یکشنبه</option>
+                  <option>دوشنبه</option>
+                  <option>سه‌شنبه</option>
+                  <option>چهارشنبه</option>
+                  <option>پنج‌شنبه</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="button-container">
+            <button onclick="findClass()">یافتن کلاس</button>
+          </div>
+          <!-- جدول اطلاعات چارت -->
+          <table id="find-class-table">
+            <thead>
+              <tr>
+                <th>بازه سوم</th>
+                <th>بازه دوم</th>
+                <th>بازه اول</th>
+                <th>روز هفته</th>
+                <th>ظرفیت کلاس</th>
+                <th>نام کلاس</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <!-- اطلاعات کلاس اینجا اضافه می‌شوند -->
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- اضافه کردن تداخلات -->
+    <div id="side_confliction" class="section">
+      <!-- بخش اضافه کردن تداخلات -->
+      <div class="add-conflict-box">
+        <h3>اضافه کردن تداخل</h3>
+        <div class="form-section">
+          <!-- تداخل درس یا امتحان -->
+          <div>
+            <label for="conflict_type">:نوع تداخل</label>
+            <select id="conflict_type" class="time-box">
+                <option value="درس">درس</option>
+                <option value="امتحان">امتحان</option>
+            </select>
+          </div>
+          <!-- روز تداخل -->
+          <div>
+            <label for="conflict_days">:روز تداخل</label>
+            <select id="conflict_days" class="time-box">
+              <option value="شنبه">شنبه</option>
+              <option value="یکشنبه">یکشنبه</option>
+              <option value="دوشنبه">دوشنبه</option>
+              <option value="سه‌شنبه">سه‌شنبه</option>
+              <option value="چهارشنبه">چهارشنبه</option>
+              <option value="پنج‌شنبه">پنج‌شنبه</option>
+              <option value="هر دوروز">هر دو روز</option>
+            </select>
+          </div>
+          <!-- درس دوم -->
+          <div>
+            <label for="conflict_subject_two">:درس دوم</label>
+            <select id="conflict_subject_two" class="time-box">
+              {% for subject in subject_list %}
+                <option value="{{ subject }}">{{ subject }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <!-- درس اول -->
+          <div>
+            <label for="conflict_subject_one">:درس اول</label>
+            <select id="conflict_subject_one" class="time-box">
+              {% for subject in subject_list %}
+                <option value="{{ subject }}">{{ subject }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="button-container" onclick="addConflict()">
+          <button>اضافه کردن تداخل</button>
+        </div>
+
+        <!-- جدول تداخلات -->
+        <table id="conflicts-table">
+          <thead>
+            <tr>
+              <th>عملیات</th>
+              <th>وضعیت برطرف شدن</th>
+              <th>نوع تداخل</th>
+              <th>روز تداخل</th>
+              <th>درس دوم</th>
+              <th>درس اول</th>
+            </tr>
+            <tr id="empty-conflicts-table">              
+              <td colspan="6" style="text-align:center; color: black;">!هنوز تداخلی ثبت نشده است</td>
+            </tr>
+          </thead>
+          <tbody>
+          </tbody>
+        </table>
+        <div class="button-container">
+          <button onclick="saveConflicts()">ذخیره تغییرات</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- پیام‌ها -->
+    <div class="add-message-box">
+      <h3>پیام‌های دریافتی</h3>
+      <div class="messages-wrapper">
+        <!-- چت خصوصی -->
+        <div id="side_private" class="section">
+          {% if full_name %}
+            <div class="chat-container" id="chatContainer" style="display: block;">
+                <div class="chat-header"></div>
+                <div class="chat-box" id="private">
+                    <!-- پیام‌ها اینجا اضافه می‌شوند -->
+                </div>
+                <div class="chat-input">
+                    <div id="pickerContainer">
+                      <button id="togglePickerBtn" style="font-size: 21px; padding-top: 3px; padding-bottom: 4px;">😊</button>
+                      <div id="emojiPicker"></div>
+                    </div>
+                    <input type="text" id="messageInputPrivate" style="font-size: 18px; padding-top: 3px; padding-bottom: 3px;" placeholder="پیام خود را بنویسید...">
+                    <button onclick="sendPrivateMessage()">ارسال</button>
+                </div>
+            </div>
+          {% endif %}
+        </div>
+        
+        <div id="side_messages" class="section">
+          <!-- جستجوی استاد -->
+          <div class="professor-input-wrapper">
+            <input id="professor-search-message" class="professor-input" placeholder="نام استاد را وارد کنید..." onkeyup="messageProfessor()">
+            <button class="professor-search-btn" onclick="messageProfessor()">جستجو</button>
+          </div>
+          <ul id="professor-suggestions-message" class="list-group suggestions-list shadow-sm"></ul>
+          <div id="contacts-list"><!-- مخاطبین اینجا اضافه می‌شوند --></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+<script>
+  let adminName = "{{ full_name }}";
+</script>
+<script src="../static/js/admin_script.js"></script>
+<script type="module">
+  import { createPicker } from 'https://cdn.skypack.dev/picmo';
+
+  const pickerContainer = document.getElementById('emojiPicker');
+  const toggleBtn = document.getElementById('togglePickerBtn');
+  const messageInput = document.getElementById('messageInputPrivate');
+
+  const picker = createPicker({ rootElement: pickerContainer });
+
+  pickerContainer.style.display = 'none';
+
+  toggleBtn.addEventListener('click', () => {
+    if (pickerContainer.style.display === 'none') {
+      pickerContainer.style.display = 'block';
+    } else {
+      pickerContainer.style.display = 'none';
+    }
+  });
+
+  picker.addEventListener('emoji:select', event => {
+    messageInput.value += event.emoji;
+    messageInput.focus();
+  });
+</script>
+</html>
