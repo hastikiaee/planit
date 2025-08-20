@@ -1,3 +1,26 @@
+function handleSerializerErrors(response) {
+    if (!response) return;
+
+    let messages = [];
+    for (const key in response) {
+        if (Array.isArray(response[key])) {
+            response[key].forEach(msg => messages.push(`${key}: ${msg}`));
+        } else if (typeof response[key] === "object") {
+            for (const subKey in response[key]) {
+                response[key][subKey].forEach(msg => messages.push(`${key}.${subKey}: ${msg}`));
+            }
+        }
+    }
+
+    if (messages.length > 0) {
+        alert("خطا در ذخیره‌سازی:\n" + messages.join("\n"));
+        console.error("Serializer Errors:", messages);
+    } else {
+        console.error("Unknown error:", response);
+    }
+}
+
+const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 // Dark Mode
 const darkmode = document.getElementById('darkmode');
 darkmode.addEventListener('change', () => {
@@ -160,16 +183,19 @@ function addCourse() {
     }
 
     document.getElementById("empty-courses-table").style.display = "none";
-    
+
     let tableBody = document.querySelector("#courses-table tbody");
     let rows = tableBody.querySelectorAll("tr");
     for (let row of rows) {
-        let existingMajor = row.children[3].textContent.trim();
-        let existingName = row.children[5].textContent.trim();
+        // فقط روی سطرهایی که حداقل 6 ستون دارند اجرا شود
+        if (row.children.length >= 6) {
+            let existingMajor = row.children[3].textContent.trim();
+            let existingName = row.children[5].textContent.trim();
 
-        if (existingMajor === courseMajor && existingName === courseName) {
-            alert("درسی با همین نام و رشته قبلاً اضافه شده است!");
-            return;
+            if (existingMajor === courseMajor && existingName === courseName) {
+                alert("درسی با همین نام و رشته قبلاً اضافه شده است!");
+                return;
+            }
         }
     }
 
@@ -198,6 +224,8 @@ function addCourse() {
     document.getElementById("course_major").value = "";
     document.getElementById("course_type").value = "";
     document.getElementById("course_name").value = "";
+
+    document.getElementById("course_major").value = "";
 }
 function saveCourses() {
     const tableRows = document.querySelectorAll("#courses-table tbody tr");
@@ -206,23 +234,24 @@ function saveCourses() {
     let newRows = [];    
 
     tableRows.forEach(row => {
-        const id = row.getAttribute("data-id");
+        if (row.cells.length >= 6) {
+            const id = row.getAttribute("data-id");
 
-        const current = {
-            courseLength: row.cells[1].innerText.trim(),
-            courseDays: row.cells[2].innerText.trim(),
-            courseMajor: row.cells[3].innerText.trim(),
-            courseType: row.cells[4].innerText.trim(),
-            courseName: row.cells[5].innerText.trim()
-        };
+            const current = {
+                subject: row.cells[5].innerText.trim(),
+                type: row.cells[4].innerText.trim(),
+                major: row.cells[3].innerText.trim(),
+                days: parseInt(row.cells[2].innerText.trim()),
+                length: parseFloat(row.cells[1].innerText.trim())
+            };
 
         if (id) {
             const original = {
-                courseLength: row.getAttribute("data-original-length"),
-                courseDays: row.getAttribute("data-original-days"),
-                courseMajor: row.getAttribute("data-original-major"),
-                courseType: row.getAttribute("data-original-type"),
-                courseName: row.getAttribute("data-original-name")
+                length: row.getAttribute("data-original-length"),
+                days: row.getAttribute("data-original-days"),
+                major: row.getAttribute("data-original-major"),
+                type: row.getAttribute("data-original-type"),
+                name: row.getAttribute("data-original-name")
             };
 
             let changed = false;
@@ -240,29 +269,34 @@ function saveCourses() {
         } else {
             newRows.push(current);
         }
+        }
     });
 
     if (newRows.length > 0) {
-        fetch("/add_courses", {
+        fetch("/charts/add_courses/", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ courses: newRows })
+            headers: { "Content-Type": "application/json",
+                "X-CSRFToken": csrftoken
+             },
+            body: JSON.stringify( newRows )
         })
         .then(res => res.json())
         .then(data => {
             if (data.success) {
                 console.log("✅ دروس جدید ذخیره شدند.");
             } else {
-                console.error("❌ خطا در ذخیره دروس جدید");
+                handleSerializerErrors(data);
             }
         });
     }
 
     updatedRows.forEach(course => {
-        const url = `/update_courses/${course.id}`;
+        const url = `/charts/update_course/${course.id}/`;
         fetch(url, {
             method: "PATCH",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json",
+                "X-CSRFToken": csrftoken
+             },
             body: JSON.stringify(course)
         })
         .then(res => res.json())
@@ -270,7 +304,7 @@ function saveCourses() {
             if (data.success) {
                 console.log(`✅ درس با ID ${course.id} بروزرسانی شد.`);
             } else {
-                console.error(`❌ خطا در بروزرسانی درس ${course.id}`);
+                handleSerializerErrors(data);
             }
         });
     });
@@ -279,14 +313,15 @@ function saveCourses() {
         alert("هیچ درسی تغییر نکرده یا اضافه نشده است.");
     } else {
         alert("✅ درخواست‌ها ارسال شدند.");
-        loadAllCourses();
+        loadCourses();
     }
 }
 function loadAllCourses() {
-  fetch('/load_all_courses', {
-        method: "POST",
+  fetch('/charts/load_courses/', {
+        method: "GET",
         headers: {
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "X-CSRFToken": csrftoken
         }
     })
     .then(response => response.json())
@@ -300,12 +335,12 @@ function loadAllCourses() {
 
         data.forEach(course => {
             const row = document.createElement('tr');
-            row.setAttribute("data-id", course.courseId);
-            row.setAttribute("data-original-length", course.courseLength);
-            row.setAttribute("data-original-days", course.courseDays);
-            row.setAttribute("data-original-major", course.courseMajor);
-            row.setAttribute("data-original-type", course.courseType);
-            row.setAttribute("data-original-name", course.courseName);
+            row.setAttribute("data-id", course.id);
+            row.setAttribute("data-original-length", course.length);
+            row.setAttribute("data-original-days", course.days);
+            row.setAttribute("data-original-major", course.major);
+            row.setAttribute("data-original-type", course.type);
+            row.setAttribute("data-original-name", course.subject);
 
             row.innerHTML = `
                 <td>
@@ -316,11 +351,11 @@ function loadAllCourses() {
                     <img src="../static/media/icons/delete.png" alt="حذف" width="20">
                     </button>
                 </td>
-                <td>${course.courseLength}</td>
-                <td>${course.courseDays}</td>
-                <td>${course.courseMajor}</td>
-                <td>${course.courseType}</td>
-                <td>${course.courseName}</td>
+                <td>${course.length}</td>
+                <td>${course.days}</td>
+                <td>${course.major}</td>
+                <td>${course.type}</td>
+                <td>${course.subject}</td>
             `;
 
             tableBody.appendChild(row);
@@ -337,16 +372,21 @@ function deleteCourse(btn) {
         return;
     }
 
-    fetch(`/delete_course/${id}`, {
-        method: "DELETE"
-    })
-    .then(res => res.json())
-    .then(result => {
-        if (result.success) {
-            row.remove();
-        } else {
-            alert("خطا در حذف درس");
+    fetch(`/charts/delete_course/${id}/`, {
+        method: "DELETE",
+        headers: {
+            "X-CSRFToken": csrftoken
         }
+    })
+    .then(res => {
+        if (!res.ok) throw new Error(`Status: ${res.status}`);
+        // اگر پاسخ 204 بود null برگردون، در غیر اینصورت json
+        return res.status !== 204 ? res.json() : null;
+    })
+    .then(result => {
+        // اگر موفق بود، سطر را حذف کن
+        row.remove();
+        console.log("✅ درس حذف شد");
     })
     .catch(err => {
         console.error("خطا در ارتباط با سرور:", err);
@@ -434,6 +474,7 @@ function addProfessor() {
     let professorEmail = document.getElementById("professor_email").value.trim();
     let professorNumber = document.getElementById("professor_number").value.trim();
     let professorName = document.getElementById("professor_name").value.trim();
+    let isProfessor = document.getElementById("is_professor").checked; // بولین
 
     if (!professorMajor || !professorEmail || !professorNumber || !professorName) {
         alert("لطفاً تمامی فیلدها را پر کنید!");
@@ -446,6 +487,8 @@ function addProfessor() {
     let rows = tableBody.querySelectorAll("tr");
 
     for (let row of rows) {
+        if (row.children.length < 4) continue;
+
         let existingEmail = row.children[2].textContent.trim();
         let existingNumber = row.children[3].textContent.trim();
 
@@ -457,10 +500,12 @@ function addProfessor() {
         if (existingEmail === professorEmail) {
             alert("استادی با این ایمیل قبلاً ثبت شده است.");
             return;
-        }   
+        }
     }
 
     let newRow = document.createElement("tr");
+
+    // چون استاد جدید هنوز ذخیره نشده، data-id نمی‌ذاریم
     newRow.innerHTML = `
         <td>
             <button onclick="professorEditRow(this)" title="اصلاح اطلاعات استاد">
@@ -474,15 +519,20 @@ function addProfessor() {
         <td>${professorEmail}</td>
         <td>${professorNumber}</td>
         <td>${professorName}</td>
+        <td>${isProfessor ? "بله" : "خیر"}</td>
     `;
 
     tableBody.appendChild(newRow);
 
+    // ریست کردن ورودی‌ها
     document.getElementById("professor_major").value = "";
     document.getElementById("professor_email").value = "";
     document.getElementById("professor_number").value = "";
     document.getElementById("professor_name").value = "";
+    document.getElementById("is_professor").checked = false;
 }
+
+
 function saveProfessors() {
     const tableRows = document.querySelectorAll("#professors-table tbody tr");
 
@@ -493,23 +543,30 @@ function saveProfessors() {
         const id = row.getAttribute("data-id");
 
         const current = {
-            professorName: row.cells[4].innerText.trim(),
-            professorNumber: row.cells[3].innerText.trim(),
-            professorEmail: row.cells[2].innerText.trim(),
-            professorMajor: row.cells[1].innerText.trim()
+            name: row.cells[4]?.innerText.trim() || "",
+            number: row.cells[3]?.innerText.trim() || "",
+            email: row.cells[2]?.innerText.trim() || "",
+            major: row.cells[1]?.innerText.trim() || "",
+            pro: row.cells[5]?.innerText.trim() === "بله"
         };
+
+        // بررسی سطر خالی
+        if (!current.name && !current.number && !current.email && !current.major) {
+            return;
+        }
 
         if (id) {
             const original = {
-                professorName: row.getAttribute("data-original-name"),
-                professorNumber: row.getAttribute("data-original-number"),
-                professorEmail: row.getAttribute("data-original-email"),
-                professorMajor: row.getAttribute("data-original-major")
+                name: row.getAttribute("data-original-name"),
+                number: row.getAttribute("data-original-number"),
+                email: row.getAttribute("data-original-email"),
+                major: row.getAttribute("data-original-major"),
+                pro: row.getAttribute("data-original-pro") === "true"
             };
 
             let changed = false;
             for (let key in current) {
-                if (current[key] !== original[key]) {
+                if (String(current[key]) !== String(original[key])) {
                     changed = true;
                     break;
                 }
@@ -524,35 +581,45 @@ function saveProfessors() {
         }
     });
 
+    // ذخیره استادهای جدید
     if (newRows.length > 0) {
         fetch("/add_professors", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ professors: newRows })
+            headers: { 
+                "Content-Type": "application/json",
+                "X-CSRFToken": csrftoken
+            },
+            body: JSON.stringify(newRows)
         })
         .then(res => res.json())
         .then(data => {
             if (data.success) {
                 console.log("✅ اساتید جدید با موفقیت ذخیره شدند.");
+                loadAllProfessors(); // بعد از ذخیره جدول رفرش میشه
             } else {
-                console.error("❌ خطا در ذخیره اساتید جدید");
+                handleSerializerErrors(data);
             }
         });
     }
 
+    // آپدیت استادهای ویرایش‌شده
     updatedRows.forEach(professor => {
         const url = `/update_professors/${professor.id}`;
         fetch(url, {
             method: "PATCH",
-            headers: { "Content-Type": "application/json" },
+            headers: { 
+                "Content-Type": "application/json",
+                "X-CSRFToken": csrftoken
+            },
             body: JSON.stringify(professor)
         })
         .then(res => res.json())
         .then(data => {
             if (data.success) {
                 console.log(`✅ استاد با ID ${professor.id} بروزرسانی شد.`);
+                loadAllProfessors();
             } else {
-                console.error(`❌ خطا در بروزرسانی استاد ${professor.id}`);
+                handleSerializerErrors(data);
             }
         });
     });
@@ -561,49 +628,59 @@ function saveProfessors() {
         alert("هیچ تغییری انجام نشده است.");
     } else {
         alert("✅ ذخیره‌سازی اطلاعات در حال انجام است.");
-        loadAllProfessors();
     }
 }
+
+
 function loadAllProfessors() {
-    fetch("/load_all_professors", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        const tableBody = document.querySelector('#professors-table tbody');
-        tableBody.innerHTML = ''; 
+    let url = "/load_professors";
 
-        if(data.length !== 0){
-            document.getElementById("empty-professors-table").style.display = "none";
-        }
 
-        data.forEach(professor => {
-            const row = document.createElement('tr');
-            row.setAttribute("data-id", professor.professorId);
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            const tableBody = document.querySelector('#professors-table tbody');
+            tableBody.innerHTML = ''; 
 
-            row.innerHTML = `
-                <td>
-                    <button onclick="professorEditRow(this)" title="اصلاح اطلاعات استاد">
-                        <img src="../static/media/icons/edit.png" alt="ویرایش" width="24">
-                    </button>
-                    <button onclick="deleteProfessor(this)" title="حذف سطر">
-                    <img src="../static/media/icons/delete.png" alt="حذف" width="20">
-                    </button>
-                </td>
-                <td>${professor.professorMajor}</td>
-                <td>${professor.professorEmail}</td>
-                <td>${professor.professorNumber}</td>
-                <td>${professor.professorName}</td>
-            `;
+            const emptyRow = document.getElementById("empty-professors-table");
+            if(data.length === 0){
+                emptyRow.style.display = "";
+            } else {
+                emptyRow.style.display = "none";
+            }
 
-            tableBody.appendChild(row);
-        });
-    })
-    .catch(error => console.error('خطا در دریافت اساتید', error));
+            data.forEach(professor => {
+                const row = document.createElement('tr');
+                row.setAttribute("data-id", professor.id)
+                row.setAttribute("data-original-name", professor.name);
+                row.setAttribute("data-original-number", professor.number);
+                row.setAttribute("data-original-email", professor.email);
+                row.setAttribute("data-original-major", professor.major);
+                row.setAttribute("data-original-pro", professor.pro ?? false);
+
+                row.innerHTML = `
+                    <td>
+                        <button onclick="professorEditRow(this)" title="اصلاح اطلاعات استاد">
+                            <img src="../static/media/icons/edit.png" alt="ویرایش" width="24">
+                        </button>
+                        <button onclick="deleteProfessor(this)" title="حذف سطر">
+                        <img src="../static/media/icons/delete.png" alt="حذف" width="20">
+                        </button>
+                    </td>
+                    <td>${professor.major}</td>
+                    <td>${professor.email}</td>
+                    <td>${professor.number}</td>
+                    <td>${professor.name}</td>
+                    <td>${professor.pro ? "بله" : "خیر"}</td>
+                `;
+
+                tableBody.appendChild(row);
+            });
+        })
+        .catch(error => console.error('خطا در دریافت اساتید', error));
 }
+
+
 function sortProfessors() {
     const table = document.getElementById("professors-table");
     const tbody = table.querySelector("tbody");
@@ -630,19 +707,37 @@ function deleteProfessor(btn) {
         return;
     }
 
-    fetch(`/delete_professor/${id}`, {
-        method: "DELETE"
+    fetch(`/delete_professor/${id}/`, {
+        method: "DELETE",
+        headers: {
+            "X-CSRFToken": csrftoken
+        }
     })
-    .then(res => res.json())
-    .then(result => {
-        if (result.success) {
+    .then(async res => {
+        if (res.status === 204) {   // ✅ رکورد حذف شد بدون body
+            row.remove();
+            return;
+        }
+
+        let data;
+        try {
+            data = await res.json(); // فقط اگر body وجود داشت
+        } catch {
+            const text = await res.text();
+            console.error("Server returned non-JSON response:", text);
+            alert("خطا در حذف استاد");
+            return;
+        }
+
+        if (data.success) {
             row.remove();
         } else {
-            alert("خطا در حذف استاد");
+            alert(data.detail || "خطا در حذف استاد");
         }
     })
     .catch(err => {
         console.error("خطا در ارتباط با سرور:", err);
+        alert("خطا در ارتباط با سرور");
     });
 }
 document.getElementById("sort-professors-select").addEventListener("change", sortProfessors);
@@ -800,16 +895,24 @@ function addStudent() {
     let studentEmail = document.getElementById("student_email").value.trim();
     let studentNumber = document.getElementById("student_number").value.trim();
     let studentName = document.getElementById("student_name").value.trim();
+    let isProfessor = document.getElementById("is_professor").checked;
 
     if (studentYear === "" || studentMajor === "" || studentEmail === "" || studentNumber === "" || studentName === "") {
         alert("لطفاً تمامی فیلدها را پر کنید!");
         return;
     }
 
-    document.getElementById("empty-students-table").style.display = "none";
-    
+    // مخفی کردن پیام "هیچ دانشجویی وجود ندارد"
+    let emptyRow = document.getElementById("empty-students-table");
+    if (emptyRow) {
+        emptyRow.style.display = "none";
+    }
+
     let tableRows = document.querySelectorAll("#students-table tbody tr");
     for (let row of tableRows) {
+        // اگر تعداد سلول کافی نبود، برو سطر بعدی
+        if (row.cells.length < 5) continue;
+
         let email = row.cells[3].textContent.trim();
         let number = row.cells[4].textContent.trim();
 
@@ -841,15 +944,18 @@ function addStudent() {
         <td>${studentEmail}</td>
         <td>${studentNumber}</td>
         <td>${studentName}</td>
+        <td>${isProfessor ? "بله" : "خیر"}</td>
     `;
 
     tableBody.appendChild(newRow);
 
+    // پاک کردن ورودی‌ها
     document.getElementById("student_year").value = "";
     document.getElementById("student_major").value = "";
     document.getElementById("student_email").value = "";
     document.getElementById("student_number").value = "";
     document.getElementById("student_name").value = "";
+    document.getElementById("is_professor").checked = false;
 }
 function saveStudents() {
     const tableRows = document.querySelectorAll("#students-table tbody tr");
@@ -857,23 +963,27 @@ function saveStudents() {
     const updatedStudents = [];
 
     for (const row of tableRows) {
+        if (row.cells.length < 6) continue; // رد شدن از سطر ناقص
+
         const id = row.getAttribute("data-id");
 
         const student = {
-            name: row.cells[5].innerText.trim(),
-            number: row.cells[4].innerText.trim(),
+            entry: parseInt(row.cells[1].innerText.trim()),
+            major: parseInt(row.cells[2].innerText.trim()),
             email: row.cells[3].innerText.trim(),
-            major: row.cells[2].innerText.trim(),
-            year: row.cells[1].innerText.trim(),
+            number: row.cells[4].innerText.trim(),
+            name: row.cells[5].innerText.trim(),
+            pro: row.cells[6]?.innerText.trim() === "بله" // فرض کردم ستون 6 برای پرو هست
         };
 
         if (id) {
             const original = {
-                name: row.getAttribute("data-original-name"),
-                number: row.getAttribute("data-original-number"),
+                entry: parseInt(row.getAttribute("data-original-year")),
+                major: parseInt(row.getAttribute("data-original-major")),
                 email: row.getAttribute("data-original-email"),
-                major: row.getAttribute("data-original-major"),
-                year: row.getAttribute("data-original-year"),
+                number: row.getAttribute("data-original-number"),
+                name: row.getAttribute("data-original-name"),
+                pro: row.getAttribute("data-original-pro") === "true"
             };
 
             let changed = false;
@@ -892,48 +1002,70 @@ function saveStudents() {
         }
     }
 
+    // ذخیره دانشجویان جدید
     if (newStudents.length > 0) {
-        fetch("/add_students", {
+        fetch("/add_students/", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ students: newStudents })
-        });
+            headers: { 
+                "Content-Type": "application/json",
+                "X-CSRFToken": csrftoken
+            },
+            body: JSON.stringify(newStudents)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (!data || data.errors) {
+                handleSerializerErrors(data);
+            }
+        })
+        .catch(err => console.error("❌ Error saving new students:", err));
     }
 
+    // آپدیت دانشجویان موجود
     updatedStudents.forEach(student => {
-        fetch(`/update_students/${student.id}`, {
+        fetch(`/update_student/${student.id}/`, {
             method: "PATCH",
-            headers: { "Content-Type": "application/json" },
+            headers: { 
+                "Content-Type": "application/json",
+                "X-CSRFToken": csrftoken
+            },
             body: JSON.stringify(student)
-        });
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (!data || data.errors) {
+                handleSerializerErrors(data);
+            }
+        })
+        .catch(err => console.error("❌ Error updating student:", err));
     });
 
     alert("✅ اطلاعات دانشجویان در حال ذخیره‌سازی است.");
     loadAllStudents();
 }
+
 function loadAllStudents() {
-    fetch("/load_all_students", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        }
+    fetch("/load_students/", {
+        method: "GET",
+        headers: { "Content-Type": "application/json" }
     })
     .then(response => response.json())
     .then(data => {
         const tableBody = document.querySelector('#students-table tbody');
         tableBody.innerHTML = ''; 
 
-        if(data.length !== 0){
+        if (data.length !== 0) {
             document.getElementById("empty-students-table").style.display = "none";
         }
 
         data.forEach(student => {
             const row = document.createElement('tr');
-            row.setAttribute("data-id", student.studentId);
-            row.setAttribute("data-original-number", student.studentNumber);
-            row.setAttribute("data-original-email", student.studentEmail);
-            row.setAttribute("data-original-major", student.studentMajor);
-            row.setAttribute("data-original-year", student.studentYear);
+            row.setAttribute("data-id", student.id);
+            row.setAttribute("data-original-number", student.number);
+            row.setAttribute("data-original-email", student.email);
+            row.setAttribute("data-original-major", student.major);
+            row.setAttribute("data-original-year", student.entry);
+            row.setAttribute("data-original-pro", student.pro);
 
             row.innerHTML = `
                 <td>
@@ -941,21 +1073,21 @@ function loadAllStudents() {
                         <img src="../static/media/icons/edit.png" alt="ویرایش" width="24">
                     </button>
                     <button onclick="deleteStudent(this)" title="حذف سطر">
-                    <img src="../static/media/icons/delete.png" alt="حذف" width="20">
+                        <img src="../static/media/icons/delete.png" alt="حذف" width="20">
                     </button>
                 </td>
-                <td>${student.studentYear}</td>
-                <td>${student.studentMajor}</td>
-                <td>${student.studentEmail}</td>
-                <td>${student.studentNumber}</td>
-                <td>${student.studentName}</td>
+                <td>${student.entry}</td>
+                <td>${student.major}</td>
+                <td>${student.email}</td>
+                <td>${student.number}</td>
+                <td>${student.name}</td>
             `;
-
             tableBody.appendChild(row);
         });
     })
-    .catch(error => console.error('خطا در دریافت اساتید', error));
+    .catch(error => console.error('خطا در دریافت دانشجویان', error));
 }
+
 function sortStudents() {
     const table = document.querySelector("#students-table tbody");
     const rows = Array.from(table.querySelectorAll("tr")).filter(row => row.cells.length > 1);
@@ -989,25 +1121,36 @@ function deleteStudent(btn) {
     const id = row.getAttribute("data-id");
 
     if (!id) {
-        alert("شناسه در دسترس نیست.");
+        alert("شناسه دانشجو در دسترس نیست.");
         return;
     }
 
-    fetch(`/delete_student/${id}`, {
-        method: "DELETE"
+    fetch(`/delete_student/${id}/`, {
+        method: "DELETE",
+        headers: {
+            "X-CSRFToken": csrftoken,
+            "Content-Type": "application/json"
+        }
     })
-    .then(res => res.json())
+    .then(res => {
+        if (!res.ok) throw new Error(`خطای سرور: ${res.status}`);
+        // اگر پاسخ 204 است، بدنه ندارد، پس مستقیم موفقیت را فرض می‌کنیم
+        if (res.status === 204) return { success: true };
+        return res.json(); // در غیر این صورت JSON بخوان
+    })
     .then(result => {
         if (result.success) {
-            row.remove();
+            loadAllStudents(); // جدول را مجدداً بارگذاری می‌کنیم
         } else {
-            alert("خطا در حذف درس");
+            alert("خطا در حذف دانشجو");
         }
     })
     .catch(err => {
         console.error("خطا در ارتباط با سرور:", err);
+        alert("❌ خطا در ارتباط با سرور، لطفاً دوباره امتحان کنید.");
     });
 }
+
 document.getElementById("sort-students-select").addEventListener("change", sortStudents);
 
 // Import Students CSV 

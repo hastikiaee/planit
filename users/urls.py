@@ -2,7 +2,7 @@ from django.urls import path
 from .views import (SignupLoginView,ResetPasswordView,PasswordResetConfirmView,
                     AdminLoginView,AdminDashboardView,StudentDashboardView,
                     ProfessorDashboardView,LogoutView,FacultyDashboardView)
-from .api.views import SaveProfessorView
+from .api.views import SaveProfessorView,StudentView
 
 urlpatterns = [
     path('signup_login/',SignupLoginView.as_view(),name='signup_login'),
@@ -19,6 +19,13 @@ urlpatterns = [
     path('add_professors', SaveProfessorView.as_view(), name='add_professors'),
     path('update_professors/<int:pk>', SaveProfessorView.as_view(), name='update_professors'),
     path('load_professors', SaveProfessorView.as_view(), name='load_professors'),
-    path('delete_professor/<int:pk>', SaveProfessorView.as_view(), name='delete_professor'),
+    path('delete_professor/<int:pk>/', SaveProfessorView.as_view(), name='delete_professor'),
+
+    path('add_students/', StudentView.as_view(), name='add_students'),
+    path('update_student/<int:pk>/', StudentView.as_view(), name='update_student'),
+    path('load_students/', StudentView.as_view(), name='load_students'),
+    path('delete_student/<int:pk>/', StudentView.as_view(), name='delete_student'),
+
+    
 
 ]

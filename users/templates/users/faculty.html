@@ -202,7 +202,7 @@
               <!-- رشته تدریس -->
               <div>
                 <label for="professor_major">:رشته تدریس</label>
-                <input type="text" id="professor_major" class="time-box" value="{{ professor_major }}" readonly>
+                <input type="text" id="professor_major_display" class="time-box" value="{{ request.user.get_major_display }}" readonly>
               </div>
             </div>
             <div>
@@ -219,7 +219,7 @@
             </div>
           </div>
           <div class="button-container">
-            <button id="add-professor-btn">اضافه کردن استاد</button>
+            <button id="add-professor-btn" onclick="addProfessor()">اضافه کردن استاد</button>
             <button id="importProfessorsCSV">CSV آپلود فایل</button>
           </div>
 
@@ -232,6 +232,7 @@
                 <th>ایمیل استاد</th>
                 <th>شماره استادی</th>
                 <th>نام استاد</th>
+                <th style="display:none;">Pro</th>
               </tr>
               <tr id="empty-professors-table">              
                 <td colspan="5" style="text-align:center; color: black;">!هنوز استادی اضافه نشده است</td>

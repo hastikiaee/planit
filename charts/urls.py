@@ -1,13 +1,14 @@
 from django.urls import path
-from .api.views import SaveCoursesView,LoadCoursesView,SaveAvailabilityView,LoadAvailabilityView,SaveScheduleView,LoadScheduleView,CheckAvailabilityView
+from .api.views import CoursesView,SaveAvailabilityView,LoadAvailabilityView,SaveScheduleView,LoadScheduleView,CheckAvailabilityView
 from .api.views import SaveExaminationView,LoadExaminationView,GnerateScheduleView,ShowExaminationView,ShowScheduleView
 from .api.views import GnerateExaminationView,SolveScheduleConfliction,SolveExaminationConfliction,CheckConnfictStatusView,LoadConfilctsView
 
 urlpatterns = [
     #course
-    path('save_courses/',SaveCoursesView.as_view(),name='save_courses'),
-    path('save_courses/<int:pk>',SaveCoursesView.as_view(),name='edit_courses'),
-    path('load_courses/',LoadCoursesView.as_view(),name='load_courses'),
+    path('add_courses/',CoursesView.as_view(),name='save_courses'),
+    path('update_course/<int:pk>/',CoursesView.as_view(),name='edit_courses'),
+    path('delete_course/<int:pk>/',CoursesView.as_view(),name='delete_courses'),
+    path('load_courses/',CoursesView.as_view(),name='load_courses'),
     #availability
     path('save_availability/',LoadAvailabilityView.as_view(),name='load_availability'),
     path('load_availibility/',SaveAvailabilityView.as_view(),name='save_availability'),

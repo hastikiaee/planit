@@ -175,7 +175,7 @@ class LoginView(View):
         messages.error(request, " مقادیر نا معتبر هستند")
         return render (request,"users/signup.html",context={"form":form})'''
     
-#logout
+@method_decorator(csrf_exempt, name='dispatch')
 class LogoutView(LoginRequiredMixin,View):
 
     login_url = '/admin_login/'
@@ -295,6 +295,7 @@ class AdminLoginView(View):
     
 #dashboards
 #dashboard for admin
+@method_decorator(csrf_exempt, name='dispatch')
 class AdminDashboardView(LoginRequiredMixin,UserPassesTestMixin,View):
 
     login_url = '/admin_login/'
@@ -310,7 +311,8 @@ class AdminDashboardView(LoginRequiredMixin,UserPassesTestMixin,View):
         full_name= request.user.full_name
 
         return render (request,"users/admin.html",context={"subject_list":subject_list,'full_name':full_name})
-    
+
+@method_decorator(csrf_exempt, name='dispatch')  
 class StudentDashboardView(LoginRequiredMixin,UserPassesTestMixin,View):
 
     login_url = '/login/'
@@ -330,6 +332,7 @@ class StudentDashboardView(LoginRequiredMixin,UserPassesTestMixin,View):
 
         return render (request,"users/student.html",context={"subject_list":subject_list,'full_name':full_name,'major':major})
 
+@method_decorator(csrf_exempt, name='dispatch')
 class ProfessorDashboardView(LoginRequiredMixin,UserPassesTestMixin,View):
 
     login_url = '/login/'
@@ -346,9 +349,10 @@ class ProfessorDashboardView(LoginRequiredMixin,UserPassesTestMixin,View):
     
         return render (request,"users/professor.html",context={"professor_number":professor_number,'full_name':full_name})
     
+@method_decorator(csrf_exempt, name='dispatch')
 class FacultyDashboardView(LoginRequiredMixin,UserPassesTestMixin,View):
 
-    login_url = '/login/'
+    login_url = '/signup_login/'
 
     def test_func(self):
             
@@ -358,6 +362,6 @@ class FacultyDashboardView(LoginRequiredMixin,UserPassesTestMixin,View):
 
         full_name= request.user.full_name
 
-        professor_major=request.user.get_major_display()
+        professor_major=request.user.major
 
         return render (request,"users/faculty.html",context={'full_name':full_name,'professor_major':professor_major})

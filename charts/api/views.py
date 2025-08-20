@@ -4,6 +4,7 @@ from django.db.models import Q
 from rest_framework.response import Response
 from rest_framework import generics,status
 from rest_framework.views import APIView
+from rest_framework.permissions import DjangoModelPermissions
 
 from .serializers import CourseSerializer,AvailabilitySerializer,ScheduleSerializer,ExaminationSerializer
 from .serializers import ConflictStudentSerializer,ConflictProfessorSerializer,ConflictSerializer
@@ -11,14 +12,51 @@ from ..models import Course,Availability,Schedule,Examination,Conflicts
 from ..chartmanager import CSPSchedule,CSPExamination 
 
 #بخش دروس    
-# save new cours & delete course by id & update by id
-class SaveCoursesView(generics.GenericAPIView):
-    serializer_class = CourseSerializer  
+# ادیت و اضافه کردن و دلیت و ویرایش درس
+#استاد مدیر فقط دروس مربوط به رشته خودش رو میتونه ببینه عوض کنه
+#فقط ادمین و استاد مدیر گروه دسترسی دارن
+class CoursesView(generics.GenericAPIView):
 
-    def get_object(self,pk):
-        return get_object_or_404(Course,pk=pk)
-       
+    serializer_class = CourseSerializer
+    queryset=Course.objects.all()  
+    permission_classes=[DjangoModelPermissions]
+    
+    def get_queryset(self):
+        user = self.request.user
+        #مدیر گروه فقط میتواند درس های رشته خودش را ببیند
+        if user.groups.filter(name="professorpro").exists():
+            return self.queryset.filter(major=user.major)
+        return self.queryset
+    #با استفاده از pk یک ابجکت برمیگرداند
+    def get_object(self, pk):
+        queryset=self.get_queryset()
+        return get_object_or_404(queryset, pk=pk)
+    #تایین مقدار دیفالت برای رشته درس اگر کاربر مدیر گروه باشد
+    def sanitize_professorpro_data(self, data):
+        user = self.request.user
+        if user.groups.filter(name="professorpro").exists():
+            major = getattr(user, "major", None)
+            if isinstance(data, list):
+                for item in data:
+                    item["major"] = major      
+            else:
+                data["major"] = major  
+        return data
+    
+    
+    def get_serializer(self, *args, **kwargs):
+        if "data" in kwargs and kwargs["data"] is not None:
+            kwargs["data"] = self.sanitize_professorpro_data(kwargs["data"])
 
+        serializer = super().get_serializer(*args, **kwargs)
+        return serializer
+    #list of courses
+    def get(self,request):
+
+        courses=self.get_queryset().all()
+        serializer = self.get_serializer(courses, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    #edit
     def patch (self,request,pk):
 
         instance=self.get_object(pk)
@@ -32,29 +70,27 @@ class SaveCoursesView(generics.GenericAPIView):
             return Response({"success": True}, status=status.HTTP_201_CREATED)
   
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
+    #delete
     def delete(self,request,pk):
         
         course = self.get_object(pk)
         course.delete()
         return Response({"success": True}, status=status.HTTP_204_NO_CONTENT)
-
+    #add
     def post(self, request):
     
         many = isinstance(request.data, list)
+
         serializer = self.get_serializer(data=request.data, many=many)
 
         if serializer.is_valid():
+
+            serializer.save()
             
             return Response({"success": True}, status=status.HTTP_201_CREATED)
        
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-#load list of courses    
-class LoadCoursesView(generics.ListAPIView):
 
-    serializer_class = CourseSerializer
-
-    queryset = Course.objects.all()
 
 
 #بخش زمان ازاد اساتید
